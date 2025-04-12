@@ -1,10 +1,9 @@
-<?php 
+<?php
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     header("Location: Interests.php");
     exit();
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -15,8 +14,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <style>
     body {
       background: #f6ff00;
-      color: #000000;
+      color: #ffffff;
       font-family: 'Segoe UI', sans-serif;
+    }
+
+    .header {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-img {
+      height: 60px;
+      width: auto;
+    }
+
+    .site-name {
+    font-weight: bold;
+    font-size: 30px;
+    color: black;
+    text-decoration: none;
+    }
+
+    .site-name:hover {
+    text-decoration: none;
     }
 
     .form-container {
@@ -26,7 +50,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       padding: 40px;
       box-shadow: 0 0 20px rgba(0,0,0,0.3);
       max-width: 500px;
-      margin-bottom: 80px;
     }
 
     .btn-yellow {
@@ -52,32 +75,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
   </style>
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body>
 
-<?php include 'Menu.php'; ?>
+  <div class="header">
+    <img src="486355471_1047694797262653_8440216834434319319_n-removebg-preview.png" alt="Logo" class="logo-img">
+    <a href="Dashboard.php" class="site-name">SkillSwap</a>
+  </div>
 
-  <main class="flex-fill d-flex justify-content-center align-items-center">
+
+  <div class="container d-flex justify-content-center align-items-center vh-100">
     <div class="form-container text-center w-100">
       <h2 class="mb-4">Create your account</h2>
       <form method="POST" action="">
         <div class="row g-3">
           <div class="col-md-6">
-            <input type="text" class="form-control" name="first_name" placeholder="First name" required>
+            <input type="text" class="form-control" name="first_name" placeholder="Enter your first name" required>
           </div>
           <div class="col-md-6">
-            <input type="text" class="form-control" name="last_name" placeholder="Last name" required>
+            <input type="text" class="form-control" name="last_name" placeholder="Enter your last name" required>
           </div>
           <div class="col-md-12">
             <input type="date" class="form-control" name="birthday" required>
           </div>
           <div class="col-md-12">
-            <input type="email" class="form-control" name="email" placeholder="Email address" required>
+            <input type="email" class="form-control" name="email" placeholder="Enter your email address" required>
           </div>
           <div class="col-md-12">
-            <input type="password" class="form-control" name="password" placeholder="Password" required>
-          </div>
-          <div class="col-md-12">
-            <input type="password" class="form-control" name="password" placeholder="Confirm password" required>
+            <input type="password" class="form-control" name="password" placeholder="Enter your password" required>
           </div>
         </div>
         <div class="mt-4">
