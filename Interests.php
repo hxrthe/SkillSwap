@@ -10,37 +10,13 @@
       font-family: 'Segoe UI', sans-serif;
     }
 
-    .header {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .logo-img {
-      height: 60px;
-      width: auto;
-    }
-
-    .site-name {
-      font-weight: bold;
-      font-size: 30px;
-      color: black;
-      text-decoration: none;
-    }
-
-    .site-name:hover {
-    text-decoration: none;
-    }
-
     .interest-container {
       background: rgba(255, 255, 255, 0.95);
       padding: 40px;
       border-radius: 12px;
       box-shadow: 0 0 20px rgba(0,0,0,0.3);
       max-width: 600px;
+      margin-bottom: 80px;
     }
 
     .interest-btn {
@@ -80,14 +56,11 @@
     }
   </style>
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
 
-  <div class="header">
-    <img src="486355471_1047694797262653_8440216834434319319_n-removebg-preview.png" alt="Logo" class="logo-img">
-    <a href="Dashboard.php" class="site-name">SkillSwap</a>
-  </div>
+<?php include 'Menu.php'; ?>
 
-  <div class="container d-flex justify-content-center align-items-center vh-100">
+  <main class="flex-fill d-flex justify-content-center align-items-center">
     <div class="interest-container text-center w-100">
       <h2 class="mb-4">What are you looking for?</h2>
       <form method="POST" action="Login.php">
