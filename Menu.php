@@ -91,7 +91,7 @@
 <body>
     <header class="menu-header">
         <div class="logo-container">
-            <img src="assets/sslogo.png">
+            <img src="assets/sslogo.png" class="logo" alt="SkillSwap Logo">
             <span class="site-name">SkillSwap</span>
         </div>
         <nav class="navbar">

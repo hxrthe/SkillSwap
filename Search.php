@@ -209,7 +209,7 @@
                                 </button>
                             </div>
                             <div class="card-image">
-                                <img src="SkillSwap.png">
+                                <img src="assets/SkillSwap.png">
                             </div>
                             <div class="card-actions bottom-actions">
                                 <a class="slide-action" onclick="slideCard('left')">← Nope</a>
