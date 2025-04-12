@@ -6,6 +6,30 @@
     <title>SkillSwap - Dashboard</title>
     <link rel="stylesheet" href="menu.css">
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --nav-bg: #ffffff;
+            --nav-text: #000000;
+            --hover-color: #666666;
+            --welcome-bg: rgba(255, 255, 255, 0.8);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --nav-bg: #2d2d2d;
+            --nav-text: #ffffff;
+            --hover-color: #cccccc;
+            --welcome-bg: rgba(45, 45, 45, 0.8);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
         /* Additional styles specific to dashboard */
         @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap');
 
@@ -44,13 +68,13 @@
             font-size: 18px;
             font-weight: 700;
             text-decoration: none;
-            color: #000;
+            color: var(--nav-text);
             transition: color 0.3s ease;
             font-family: 'Inter', sans-serif;
         }
 
         .nav-links a:hover {
-            color: #666;
+            color: var(--hover-color);
         }
 
         .welcome-message {
@@ -65,6 +89,27 @@
             text-align: justify;
             line-height: 1.5;
             z-index: 1;
+            background-color: var(--welcome-bg);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            margin-left: 20px;
+        }
+
+        .theme-toggle img {
+            width: 24px;
+            height: 24px;
+            filter: var(--icon-filter);
+        }
+
+        [data-theme="dark"] .theme-toggle img {
+            filter: invert(1);
         }
     </style>
 </head>
@@ -87,6 +132,9 @@
                     <li><a href="messages.php">ABOUT US</a></li>
                 </ul>
             </nav>
+            <button class="theme-toggle" id="themeToggle">
+                <img src="sun.png" alt="Toggle Theme">
+            </button>
             <div class="profile-logo">
                 <img src="profi.png" alt="Profile" class="profile-img">
             </div>
@@ -99,5 +147,25 @@
             </div>
         </main>
     </div>
+
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            body.setAttribute('data-theme', savedTheme);
+        }
+
+        // Toggle theme
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    </script>
 </body>
 </html>

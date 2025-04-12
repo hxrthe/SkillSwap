@@ -6,18 +6,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkillSwap - Search</title>
     <link rel="stylesheet" href="menu.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --nav-bg: #ffffff;
+            --nav-text: #000000;
+            --hover-color: #666666;
+            --circle-bg: rgba(255, 215, 0, 0.2);
+            --card-bg: #ffffff;
+            --card-text: #000000;
+            --search-bg: transparent;
+            --search-text: #000000;
+            --toggle-bg: #f0f0f0;
+            --toggle-text: #000000;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --nav-bg: #2d2d2d;
+            --nav-text: #ffffff;
+            --hover-color: #cccccc;
+            --circle-bg: rgba(255, 255, 255, 0.1);
+            --card-bg: #2d2d2d;
+            --card-text: #ffffff;
+            --search-bg: transparent;
+            --search-text: #ffffff;
+            --toggle-bg: #4a3c00;
+            --toggle-text: #ffd700;
+            background: linear-gradient(135deg, #2d2d2d 0%, #4a3c00 100%);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease, background 0.3s ease;
+            min-height: 100vh;
+        }
         
         .main-container {
             position: relative;
             z-index: 1;
         }
+
         .circle-decoration {
             position: fixed;
             border-radius: 50%;
-            background-color: rgba(255, 255, 0, 0.7);
+            background-color: var(--circle-bg);
             z-index: -3;
             pointer-events: none;
+        }
+
+        [data-theme="dark"] .circle-decoration {
+            background: linear-gradient(135deg, rgba(74, 60, 0, 0.3) 0%, rgba(45, 45, 45, 0.3) 100%);
         }
 
         .circle-1 {
@@ -41,6 +84,53 @@
             left: 1050px;
         }
 
+        /* Search bar styles */
+        .search-bar-container {
+            color: var(--search-text);
+        }
+
+        .search input {
+            background-color: var(--search-bg);
+            color: var(--search-text);
+            border: 1px solid var(--text-color);
+        }
+
+        /* Toggle styles */
+        .toggle-container {
+            background-color: var(--toggle-bg);
+            color: var(--toggle-text);
+        }
+
+        /* Card styles */
+        .card {
+            background-color: var(--card-bg);
+            color: var(--card-text);
+            border: 1px solid var(--text-color);
+        }
+
+        .card-title, .card-topic {
+            color: var(--card-text);
+        }
+
+        .offer-button {
+            background-color: var(--card-bg);
+            color: var(--card-text);
+            border: 1px solid var(--text-color);
+        }
+
+        [data-theme="dark"] .card-title,
+        [data-theme="dark"] .card-topic,
+        [data-theme="dark"] .offer-label {
+            color: #ffd700;
+        }
+
+        [data-theme="dark"] .slide-action {
+            color: #ffd700;
+        }
+
+        [data-theme="dark"] .card-action-btn {
+            color: #ffd700;
+        }
     </style>
 </head>
 <body>
@@ -81,7 +171,7 @@
                                 </button>
                             </div>
                             <div class="card-image">
-                                <img src="SkillSwap.png" alt="Skill Image">
+                                <img src="assets/SkillSwap.png">
                             </div>
                             <div class="card-actions bottom-actions">
                                 <a class="slide-action" onclick="slideCard('left')">← Nope</a>
