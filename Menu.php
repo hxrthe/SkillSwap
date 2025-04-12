@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillSwap</title>
+    <title>Menu</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
@@ -14,7 +14,8 @@
 <body>
     <header class="menu-header">
         <div class="logo-container">
-            <img src="sslogo.png" alt="Logo" class="logo">
+            
+            <img src="assets/sslogo.png" alt="Logo" class="logo">
             <span class="site-name">SkillSwap</span>
         </div>
         <nav class="navbar">
@@ -26,7 +27,7 @@
             </ul>
         </nav>
         <div class="profile-logo">
-            <img src="profi.png" alt="Profile Logo">
+            <img src="assets/profi.png" alt="Profile Logo">
         </div>
         <button class="menu-toggle" onclick="toggleMenu()">☰</button>
     </header>
@@ -40,6 +41,9 @@
             <li><a href="#profile">Profile</a></li>
         </ul>
     </div>
+    <div class="circle-decoration circle-1"></div>
+            <div class="circle-decoration circle-2"></div>
+            <div class="circle-decoration circle-3"></div>
 
     <script>
         function toggleMenu() {
@@ -50,3 +54,4 @@
     <script src="toggle.js"></script>
 </body>
 </html>
+<?php include 'footer.php'; ?>

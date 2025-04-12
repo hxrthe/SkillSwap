@@ -6,13 +6,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkillSwap - Search</title>
     <link rel="stylesheet" href="menu.css">
+    <style>
+        
+        .main-container {
+            position: relative;
+            z-index: 1;
+        }
+        .circle-decoration {
+            position: fixed;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 0, 0.7);
+            z-index: -3;
+            pointer-events: none;
+        }
+
+        .circle-1 {
+            width: 400px;
+            height: 250px;
+            top: -20px;
+            left: 1000px;
+        }
+
+        .circle-2 {
+            width: 250px;
+            height: 150px;
+            top: 262px;
+            left: 1130px;
+        }
+
+        .circle-3 {
+            width: 400px;
+            height: 300px;
+            top: 450px;
+            left: 1050px;
+        }
+
+    </style>
 </head>
 <body>
     <div class="site-container">
         <div class="background-logo"></div>
-        <div class="circle-decoration circle-1"></div>
-        <div class="circle-decoration circle-2"></div>
-        <div class="circle-decoration circle-3"></div>
+        
         
         <main>
             <div class="main-container">
@@ -112,6 +146,7 @@
             </div>
         </main>
     </div>
+
     <script>
         function slideCard(direction) {
             const currentCard = document.querySelector('.card-current');
