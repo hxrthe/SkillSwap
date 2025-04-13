@@ -96,10 +96,10 @@
         </div>
         <nav class="navbar">
             <ul class="nav-links">
-                <li><a href="#home">Home</a></li>
-                <li><a href="#inbox">Inbox</a></li>
+                <li><a href="Home Page.php">Home</a></li>
+                <li><a href="Inbox.php">Inbox</a></li>
                 <li><a href="Search.php">Search</a></li>
-                <li><a href="#community">Community</a></li>
+                <li><a href="community.php">Community</a></li>
             </ul>
         </nav>
         <button class="theme-toggle" id="themeToggle">
@@ -113,11 +113,11 @@
 
     <div class="side-panel" id="sidePanel">
         <ul>
-            <li><a href="#home">Home</a></li>
-            <li><a href="#inbox">Inbox</a></li>
-            <li><a href="#search">Search</a></li>
-            <li><a href="#community">Community</a></li>
-            <li><a href="#profile">Profile</a></li>
+        <li><a href="Home Page.php">Home</a></li>
+                <li><a href="Inbox.php">Inbox</a></li>
+                <li><a href="Search.php">Search</a></li>
+                <li><a href="community.php">Community</a></li>
+            <li><a href="Profile.php">Profile</a></li>
         </ul>
     </div>
     <div class="circle-decoration circle-1"></div>

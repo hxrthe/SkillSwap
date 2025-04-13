@@ -11,10 +11,10 @@
 <body>
   
   <!-- Navigation -->
-  <a href="#" class="nav-home">HOME</a>
-  <a href="#" class="nav-inbox">INBOX</a>
-  <a href="#" class="nav-search">SEARCH</a>
-  <a href="#" class="nav-community">COMMUNITY</a>
+  <a href="Home Page.php" class="nav-home">HOME</a>
+  <a href="Inbox.php" class="nav-inbox">INBOX</a>
+  <a href="Search.php" class="nav-search">SEARCH</a>
+  <a href="community.php" class="nav-community">COMMUNITY</a>
 
 
   <!-- Logo -->
