@@ -29,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <a href="#" class="nav-home">HOME</a>
   <div class="nav-auth">
     <a href="login.php">LOGIN</a> / 
-    <a href="Dashboard.php?register=1">REGISTER</a>
+    <a href="Registration.php">REGISTER</a>
   </div>
   <a href="#" class="nav-aboutus">ABOUT US</a>
 
