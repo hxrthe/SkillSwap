@@ -393,8 +393,7 @@
       color: #000000;
       z-index: 10;
     }
-
-    /* Add logo styling */
+    
     .logo-image {
       position: absolute;
       width: 92px;
