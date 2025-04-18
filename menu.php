@@ -174,7 +174,7 @@
 <body>
     <header class="header">
         <div class="logo">
-            <img src="sslogo.png" alt="Site Logo" class="site-logo">
+            <img src="assets/images/sslogo.png" alt="Site Logo" class="site-logo">
             SkillSwap
         </div>
         <nav>
