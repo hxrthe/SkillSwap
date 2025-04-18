@@ -22,7 +22,7 @@
             justify-content: space-between;
             align-items: center;
             height: 70px;
-            background-color: #ffeb3b; /* Yellow */
+            background-color: yellow; /* Yellow */
             padding: 10px 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             position: fixed;
@@ -79,7 +79,7 @@
         .sidebar {
             width: 250px;
             height: calc(100vh - 70px); /* Adjust height to fit below the navbar */
-            background-color: #ffeb3b; /* Yellow */
+            background-color:yellow; /* Yellow */
             color: #000;
             position: fixed;
             top: 70px; /* Start below the navbar */
@@ -110,7 +110,7 @@
         /* Mini Sidebar */
         .mini-sidebar {
             width: 200px;
-            height: calc(100vh - 70px);
+            height: 500px;
             background-color: rgba(231, 213, 53, 0.9); /* Light yellow */
             color: #000;
             position: fixed;
@@ -291,7 +291,7 @@
     <div class="sidebar">
         <ul>
             <li><i class="fas fa-home"></i><a href="#">Home</a></li>
-            <li><i class="fas fa-envelope"></i><a href="#">Messages</a></li>
+            <li><i class="fas fa-envelope"></i><a href="adminmess.php">Messages</a></li>
             <li><i class="fas fa-cog"></i><a href="#">Settings</a></li>
         </ul>
     </div>
