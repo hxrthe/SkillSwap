@@ -199,7 +199,7 @@
         <ul class="sidebar-menu">
             <li>
                 <ion-icon name="create-outline"></ion-icon>
-                <a href="#edit-profile">Edit Your Profile</a>
+                <a href="javascript:void(0)" onclick="toggleEditProfileModal()">Edit Your Profile</a>
             </li>
             <li>
                 <ion-icon name="settings-outline"></ion-icon>
@@ -211,6 +211,38 @@
 
     <div class="bg">
         <img src="ssbg4.png" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; background-color: yellow; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); z-index: 1001;">
+        <h3>Edit Your Profile</h3>
+        <form id="editProfileForm">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" value="MOCHI" style="width: 80%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="mochi@example.com" style="width: 80%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            
+            <button type="button" onclick="showPasswordModal()" style="background-color: black; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Update</button>
+        </form>
+    </div>
+
+    <!-- Password Verification Modal -->
+    <div id="passwordModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); z-index: 1001;">
+        <h3>Verify Your Password</h3>
+        <form id="passwordForm">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" style="width: 80%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            
+            <button type="button" onclick="showSuccessModal()" style="background-color: yellow; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Done</button>
+        </form>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); z-index: 1001;">
+        <h3>Profile Updated</h3>
+        <p>Your profile has been successfully updated.</p>
+        <button type="button" onclick="closeAllModals()" style="background-color: yellow; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Close</button>
     </div>
 
     <script>
@@ -234,6 +266,44 @@
             // Redirect to login.php
             window.location.href = 'login.php';
         }
+
+        function toggleEditProfileModal() {
+            const editProfileModal = document.getElementById('editProfileModal');
+            editProfileModal.style.display = editProfileModal.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showPasswordModal() {
+            document.getElementById('editProfileModal').style.display = 'none';
+            document.getElementById('passwordModal').style.display = 'block';
+        }
+
+        function showSuccessModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('successModal').style.display = 'block';
+        }
+
+        function closeAllModals() {
+            document.getElementById('editProfileModal').style.display = 'none';
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('successModal').style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener('click', function (event) {
+            const editProfileModal = document.getElementById('editProfileModal');
+            const passwordModal = document.getElementById('passwordModal');
+            const successModal = document.getElementById('successModal');
+
+            if (event.target === editProfileModal) {
+                editProfileModal.style.display = 'none';
+            }
+            if (event.target === passwordModal) {
+                passwordModal.style.display = 'none';
+            }
+            if (event.target === successModal) {
+                successModal.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
