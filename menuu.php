@@ -150,7 +150,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
-            z-index: 999; /* Ensure it appears below the sidebar */
+            z-index: 999; /* Ensure it appears below the modal but above other content */
         }
 
         .overlay.active {
@@ -190,7 +190,7 @@
         <div class="menu-icon" onclick="toggleMenu()">☰</div>
     </header>
 
-    <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+    <div id="overlay" class="overlay" onclick="closeAllModals()"></div>
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <img src="mochi.png" alt="User Image" class="user-image">
@@ -254,13 +254,21 @@
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay');
-            const header = document.querySelector('.header'); // Select the header
 
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('active');
-            bg.classList.toggle('blurred');
-            header.classList.toggle('blurred');
+            sidebar.classList.toggle('active'); // Toggle the sidebar visibility
+            overlay.classList.toggle('active'); // Toggle the overlay visibility
         }
+
+        // Close the sidebar when clicking outside
+        window.addEventListener('click', function (event) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            if (sidebar.classList.contains('active') && !sidebar.contains(event.target) && !event.target.closest('.header nav a')) {
+                sidebar.classList.remove('active'); // Hide the sidebar
+                overlay.classList.remove('active'); // Hide the overlay
+            }
+        });
 
         function logout() {
             // Redirect to login.php
@@ -269,7 +277,17 @@
 
         function toggleEditProfileModal() {
             const editProfileModal = document.getElementById('editProfileModal');
-            editProfileModal.style.display = editProfileModal.style.display === 'none' ? 'block' : 'none';
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            if (editProfileModal.style.display === 'none' || editProfileModal.style.display === '') {
+                editProfileModal.style.display = 'block'; // Show the modal
+                sidebar.classList.remove('active'); // Hide the sidebar
+                overlay.classList.add('active'); // Show the overlay
+            } else {
+                editProfileModal.style.display = 'none'; // Hide the modal
+                overlay.classList.remove('active'); // Hide the overlay
+            }
         }
 
         function showPasswordModal() {
@@ -286,6 +304,7 @@
             document.getElementById('editProfileModal').style.display = 'none';
             document.getElementById('passwordModal').style.display = 'none';
             document.getElementById('successModal').style.display = 'none';
+            document.getElementById('overlay').classList.remove('active'); // Hide the overlay
         }
 
         // Close modals when clicking outside
