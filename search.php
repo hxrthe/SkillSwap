@@ -1,4 +1,68 @@
-<?php include 'menuu.php'; ?>
+<?php
+session_start();
+require_once 'SkillSwapDatabase.php';
+
+$db = new Database();
+$conn = $db->getConnection();
+
+// Get all users except the currently logged in user
+$current_user = isset($_SESSION['username']) ? $_SESSION['username'] : '';
+
+// Initialize or get shown users from session
+if (!isset($_SESSION['shown_users'])) {
+    $_SESSION['shown_users'] = [];
+}
+
+try {
+    // Get all available users that haven't been shown yet
+    $shown_users_str = implode("','", $_SESSION['shown_users']);
+    $shown_users_str = $shown_users_str ? "'" . $shown_users_str . "'" : "''";
+    
+    $stmt = $conn->prepare("SELECT username FROM users 
+                           WHERE username != :current_user 
+                           AND username NOT IN ($shown_users_str)
+                           ORDER BY RAND()");
+    $stmt->bindParam(':current_user', $current_user);
+    $stmt->execute();
+    $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // If no new users found, reset shown users and get all users again
+    if (empty($all_users)) {
+        $_SESSION['shown_users'] = [];
+        $stmt->execute();
+        $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    // Take the first 5 users for the initial stack
+    $users = array_slice($all_users, 0, 5);
+    
+} catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
+    $users = [];
+}
+
+// Handle match/nope actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action']) && isset($_POST['username'])) {
+        $action = $_POST['action'];
+        $username = $_POST['username'];
+        
+        // Add user to shown users
+        if (!in_array($username, $_SESSION['shown_users'])) {
+            $_SESSION['shown_users'][] = $username;
+        }
+        
+        // If it's a match, you can add additional logic here
+        if ($action === 'match') {
+            // Add match logic here (e.g., store in matches table)
+        }
+        
+        // Return success response
+        echo json_encode(['success' => true]);
+        exit;
+    }
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -72,6 +136,7 @@
             width: 600px;
             height: 550px;
             margin: 0 auto;
+            margin-top: 100px; /* Add margin to account for the menu */
         }
 
         .card {
@@ -83,6 +148,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 20px;
             transition: transform 0.5s ease, opacity 0.5s ease;
+            cursor: pointer;
         }
 
         .card img {
@@ -146,6 +212,8 @@
             top: 20px;
             font-size: 18px;
             font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
         }
 
         .card .nope {
@@ -159,15 +227,15 @@
         }
 
         .card:nth-child(1) {
-            transform: rotate(0deg); /* Ensure the first card is not rotated */
+            transform: rotate(0deg);
         }
 
         .card:nth-child(2) {
-            transform: rotate(-5deg); /* Rotate the second card slightly to the left */
+            transform: rotate(-5deg);
         }
 
         .card:nth-child(3) {
-            transform: rotate(5deg); /* Rotate the third card slightly to the right */
+            transform: rotate(5deg);
         }
 
         /* Responsive Styles */
@@ -261,6 +329,8 @@
     </style>
 </head>
 <body>
+    <?php include 'menuu.php'; ?>
+
     <div class="container">
         <!-- Search Bar -->
         <div class="search-bar-container">
@@ -277,19 +347,23 @@
 
         <!-- Card Container -->
         <div class="card-container">
-            <div class="card">
+            <?php foreach ($users as $index => $user): ?>
+            <div class="card" data-username="<?php echo htmlspecialchars($user['username']); ?>" 
+                 style="z-index: <?php echo count($users) - $index; ?>; 
+                        transform: rotate(<?php echo $index * 5; ?>deg);">
                 <img src="jane.jpg" alt="User Picture">
                 <div class="info">
-                    <h3>Name</h3>
+                    <h3><?php echo htmlspecialchars($user['username']); ?></h3>
                     <p>TOPIC</p>
-                    <div class="nope"><- Nope</div>
-                    <div class="match">Match -></div>
+                    <div class="nope" onclick="handleAction('nope', this)"><- Nope</div>
+                    <div class="match" onclick="handleAction('match', this)">Match -></div>
                     <div class="offer">
                         <div>WILL OFFER YOU</div>
                         <div>IN EXCHANGE FOR</div>
                     </div>
                 </div>
             </div>
+            <?php endforeach; ?>
         </div>
     </div>
 
@@ -297,14 +371,33 @@
         const cards = document.querySelectorAll('.card');
         let currentCardIndex = 0;
 
+        function handleAction(action, element) {
+            const card = element.closest('.card');
+            const username = card.dataset.username;
+            
+            fetch('search.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=${action}&username=${username}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    swipeCard(action === 'match' ? 'right' : 'left');
+                }
+            });
+        }
+
         function swipeCard(direction) {
             const currentCard = cards[currentCardIndex];
             if (!currentCard) return;
 
             if (direction === 'right') {
-                currentCard.style.transform = 'translateX(100%)';
+                currentCard.style.transform = 'translateX(100%) rotate(30deg)';
             } else if (direction === 'left') {
-                currentCard.style.transform = 'translateX(-100%)';
+                currentCard.style.transform = 'translateX(-100%) rotate(-30deg)';
             }
 
             currentCard.style.opacity = '0';
@@ -312,16 +405,10 @@
 
             if (currentCardIndex < cards.length) {
                 cards[currentCardIndex].style.transform = 'rotate(0deg)';
+            } else {
+                window.location.reload();
             }
         }
-
-        document.querySelectorAll('.nope').forEach(nope => {
-            nope.addEventListener('click', () => swipeCard('left'));
-        });
-
-        document.querySelectorAll('.match').forEach(match => {
-            match.addEventListener('click', () => swipeCard('right'));
-        });
     </script>
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
