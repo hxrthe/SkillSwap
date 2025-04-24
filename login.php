@@ -1,3 +1,65 @@
+<?php
+session_start();
+require_once 'SkillSwapDatabase.php';
+require_once 'SP.php';
+
+$db = new Database();
+$conn = $db->getConnection();
+
+$error = false;
+$success = false;
+$login_error = false;
+
+// Handle Login
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'login') {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    try {
+        $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username AND Password = :password");
+        $stmt->bindParam(':username', $username);
+        $stmt->bindParam(':password', $password);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            $_SESSION['user_id'] = $user['User_ID'];
+            $_SESSION['username'] = $user['username'];
+            header("Location: home.php");
+            exit();
+        } else {
+            $login_error = true;
+        }
+    } catch (PDOException $e) {
+        $login_error = true;
+    }
+}
+
+// Handle Registration
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'register') {
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+
+    if ($password !== $confirm_password) {
+        $error = 'confirm';
+    } else {
+        try {
+            $crud = new Crud();
+            $crud->createUser2($username, $email, $password);
+            $success = true;
+        } catch (PDOException $e) {
+            if ($e->getCode() == '45000') {
+                $error = 'email_exists';
+            } else {
+                $error = 'database';
+            }
+        }
+    }
+}
+?>
+
 <?php include 'menu.php'; ?>
 
 <!DOCTYPE html>
@@ -9,6 +71,10 @@
     <title>SkillSwap</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
     <style>
         .input-box {
             position: relative;
@@ -70,28 +136,26 @@
             z-index: 1000;
         }
         body {
-            margin-top: 60px; /* Adjust this value based on the height of your header */
+            margin-top: 60px;
         }
     </style>
-</head>
-
-<body>
     <div class="container">
         <div class="form-box login">
-            <form action="">
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="login">
                 <h1>Log into your account</h1>
                 <div class="input-box">
-                    <input type="text" placeholder="Username" required>
+                    <input type="text" name="username" placeholder="Username" required>
                     <i class='bx bxs-user'></i>
                 </div>
                 <div class="input-box">
-                    <input type="password" placeholder="Password" required>
+                    <input type="password" name="password" placeholder="Password" required>
                     <i class='bx bxs-lock-alt'></i>
                 </div>
                 <div class="forgot-link">
                     <a href="#">Forgot password?</a>
                 </div>
-                <button type="submit" class="btn" formaction="home.php">Sign In</button>
+                <button type="submit" class="btn">Sign In</button>
                 <p>or login with social platforms</p>
                 <div class="social-icons">
                     <a href="#"><i class='bx bxl-facebook'></i></a>
@@ -103,23 +167,24 @@
 
         
         <div class="form-box register">
-            <form action="">
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="register">
                 <h1>Create account</h1>
                 <div class="input-box">
-                    <input type="text" placeholder="Username" required>
+                    <input type="text" name="username" placeholder="Username" required>
                     <i class='bx bxs-user'></i>
                 </div>
                 <div class="input-box">
-                    <input type="email" placeholder="Email" required>
+                    <input type="email" name="email" placeholder="Email" required>
                     <i class='bx bxs-envelope'></i>
                     <button type="button" class="get-code-btn" onclick="showModal()">Get Code</button>
                 </div>
                 <div class="input-box">
-                    <input type="password" placeholder="Password" required>
+                    <input type="password" name="password" placeholder="Password" required>
                     <i class='bx bxs-lock-alt'></i>
                 </div>
                 <div class="input-box">
-                    <input type="password" placeholder="Re-enter Password" required>
+                    <input type="password" name="confirm_password" placeholder="Re-enter Password" required>
                     <i class='bx bxs-lock-alt'></i>
                 </div>
                 <button type="submit" class="btn">Sign Up</button>
@@ -167,6 +232,54 @@
             document.getElementById('verificationModal').style.display = 'none';
         }
     </script>
+
+    <?php if ($login_error): ?>
+    <script>
+    Swal.fire({
+        icon: "error",
+        title: "Login Failed",
+        text: "Invalid username or password. Please try again."
+    });
+    </script>
+    <?php endif; ?>
+
+    <?php if ($error === 'confirm'): ?>
+    <script>
+    Swal.fire({
+        icon: "error",
+        title: "Password Mismatch",
+        text: "Passwords do not match!"
+    });
+    </script>
+    <?php elseif ($error === 'email_exists'): ?>
+    <script>
+    Swal.fire({
+        icon: "error",
+        title: "Email Already Exists",
+        text: "This email is already registered!"
+    });
+    </script>
+    <?php elseif ($error === 'database'): ?>
+    <script>
+    Swal.fire({
+        icon: "error",
+        title: "Registration Failed",
+        text: "An error occurred while registering. Please try again."
+    });
+    </script>
+    <?php endif; ?>
+
+    <?php if ($success): ?>
+    <script>
+    Swal.fire({
+        icon: "success",
+        title: "Registration Successful",
+        text: "You can now log in with your credentials."
+    });
+    </script>
+    <?php endif; ?>
+
+    <script src="script.js"></script>
 
 </body>
 </html>
