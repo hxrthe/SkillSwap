@@ -180,7 +180,7 @@
         <nav>
             <a href="menu.php">HOME</a>
             <a href="login.php">LOGIN</a>
-            <a href="#about">ABOUT</a>
+            <a href="about.php">ABOUT</a>
             <a href="#contact">CONTACT</a>
             <a href="javascript:void(0)" onclick="toggleSidebar()">
                 <ion-icon name="person-outline"></ion-icon>
