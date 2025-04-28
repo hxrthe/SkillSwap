@@ -1,3 +1,5 @@
+<?php include 'menu.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SkillSwap</title>
 
-</head>
+  </head>
 <body>
 
   <header>
@@ -66,11 +68,10 @@
       </ul>
     </div>
 
-    <div class="section section-center">
-      <a href="#" class="cta-button">Join the SkillSwap Community Today</a>
-    </div>
-
   </div>
+
+</body>
+</html>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -87,7 +88,6 @@
       background-color: #FFD700;
       padding: 40px 20px;
       text-align: center;
-      animation: slideDown 1s ease-out;
       position: relative;
     }
 
@@ -101,21 +101,18 @@
       width: 100%;
       max-height: 400px;
       object-fit: cover;
-      animation: fadeIn 2s ease-in;
     }
 
     .container {
       padding: 60px 20px;
       max-width: 1200px;
       margin: auto;
-      animation: fadeIn 2s ease-in;
       position: relative;
       z-index: 2;
     }
 
     .section {
       margin-bottom: 60px;
-      animation: fadeUp 1s ease-in;
     }
 
     h2 {
@@ -142,15 +139,8 @@
     }
 
     ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    ul li::before {
-      content: "\2728";
-      margin-right: 10px;
-      color: #000;
-      font-size: 1.2rem;
+      list-style: disc;  
+      padding-left: 20px;  
     }
 
     .cta-button {
@@ -173,27 +163,6 @@
 
     .section-center {
       text-align: center;
-      animation: zoomIn 1s ease;
-    }
-
-    @keyframes fadeIn {
-      from {opacity: 0;}
-      to {opacity: 1;}
-    }
-
-    @keyframes fadeUp {
-      from {transform: translateY(30px); opacity: 0;}
-      to {transform: translateY(0); opacity: 1;}
-    }
-
-    @keyframes slideDown {
-      from {transform: translateY(-50px); opacity: 0;}
-      to {transform: translateY(0); opacity: 1;}
-    }
-
-    @keyframes zoomIn {
-      from {transform: scale(0.8); opacity: 0;}
-      to {transform: scale(1); opacity: 1;}
     }
 
     .background-shapes {
@@ -204,6 +173,7 @@
       height: 100%;
       overflow: hidden;
       z-index: 0;
+      pointer-events: none;
     }
 
     .shape {
@@ -213,19 +183,15 @@
       animation: float 6s ease-in-out infinite;
     }
 
-    .background-shapes div:nth-child(1) { width: 80px; height: 80px; top: 10%; left: 5%; }
-    .background-shapes div:nth-child(2) { width: 120px; height: 120px; top: 30%; left: 80%; }
-    .background-shapes div:nth-child(3) { width: 60px; height: 60px; top: 70%; left: 20%; }
-    .background-shapes div:nth-child(4) { width: 100px; height: 100px; top: 50%; left: 40%; }
-    .background-shapes div:nth-child(5) { width: 90px; height: 90px; top: 20%; left: 60%; }
-    .background-shapes div:nth-child(6) { width: 70px; height: 70px; top: 80%; left: 75%; }
+    .background-shapes div:nth-child(1) { width: 80px; height: 80px; top: 10%; left: 5%; animation-delay: 0s; }
+    .background-shapes div:nth-child(2) { width: 120px; height: 120px; top: 30%; left: 80%; animation-delay: 1s; }
+    .background-shapes div:nth-child(3) { width: 60px; height: 60px; top: 70%; left: 20%; animation-delay: 2s; }
+    .background-shapes div:nth-child(4) { width: 100px; height: 100px; top: 50%; left: 40%; animation-delay: 3s; }
+    .background-shapes div:nth-child(5) { width: 90px; height: 90px; top: 20%; left: 60%; animation-delay: 4s; }
+    .background-shapes div:nth-child(6) { width: 70px; height: 70px; top: 80%; left: 75%; animation-delay: 5s; }
 
     @keyframes float {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-20px); }
     }
-
   </style>
-
-</body>
-</html>
