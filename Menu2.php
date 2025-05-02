@@ -1,25 +1,3 @@
-<?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-require_once 'SkillSwapDatabase.php';
-require_once 'SP.php';
-
-// Redirect to login if user is not logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: loginpagee.php");
-    exit();
-}
-
-// Get user data
-$db = new Database();
-$conn = $db->getConnection();
-$stmt = $conn->prepare("SELECT * FROM users WHERE User_ID = :user_id");
-$stmt->execute([':user_id' => $_SESSION['user_id']]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,52 +13,72 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             font-family: Arial, sans-serif;
         }
         .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 20px 50px;
+            padding: 15px 50px;
             background-color: yellow;
             color: black;
             font-family: 'Poppins', sans-serif;
             border: 2px solid black;
             box-shadow: 0 4px 8px rgba(87, 87, 87, 0.09);
             border-radius: 0 0 30px 30px;
+            box-sizing: border-box;
+            z-index: 1000;
         }
         .header .logo {
+            display: flex;
+            align-items: center;
             font-size: 30px;
             font-weight: bold;
         }
         .header nav {
             display: flex;
+            align-items: center;
             gap: 50px;
-            padding-right: 70px;
+            margin-right: 20px;
         }
         .header nav a {
             color: black;
             text-decoration: none;
             font-size: 20px;
+            transition: all 0.3s ease;
         }
         .header nav a:hover {
-            text-decoration: underline;
+            color: #333;
+            transform: translateY(-2px);
         }
         .menu-icon {
             display: none;
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
         }
         @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
             .header nav {
                 display: none;
                 flex-direction: column;
                 background-color: yellow;
                 position: absolute;
-                top: 50px;
+                top: 70px;
                 right: 20px;
-                padding: 10px;
-                border: 1px solid #444;
+                padding: 20px;
+                border: 2px solid black;
+                border-radius: 10px;
+                box-shadow: 0 4px 8px rgba(87, 87, 87, 0.09);
+                margin-right: 0;
             }
             .header nav.active {
                 display: flex;
+            }
+            .header nav a {
+                padding: 10px 0;
             }
             .menu-icon {
                 display: block;
@@ -103,7 +101,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             background-color: yellow;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
             z-index: 1000;
-            padding: 10px;
+            padding: 30px;
             box-sizing: border-box;
             border-radius: 20px 0 0 20px;
             overflow-y: auto;
@@ -127,15 +125,15 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         .sidebar-header h3 {
             margin: 0;
             font-size: 30px;
-            font-weight: 500;
+            font-weight: 600;
         }
         .sidebar-menu {
             list-style: none;
-            padding-top: 1px;
+            padding-top: 40px;
             margin: 0;
         }
         .sidebar-menu li {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
         .sidebar-menu li a {
             text-decoration: none;
@@ -158,7 +156,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             font-size: 16px;
             cursor: pointer;
             border-radius: 5px;
-            margin-top: 100px;
+            margin-top: 115px;
             margin-left: 75px;
         }
         .logout-button:hover {
@@ -181,19 +179,6 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         .blurred {
             filter: blur(8px);
-        }
-
-        .profile-info {
-            flex: 1;
-            min-width: 250px;
-        }
-
-        .profile-name {
-            font-size: 20px;
-            font-weight: bold;
-            margin-top: 10px;
-            margin-bottom: 10px;
-            color: #333;
         }
 
         .site-logo {
@@ -230,9 +215,6 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         <div class="sidebar-header">
         </div>
         <ul class="sidebar-menu">
-        <div class="profile-info">
-        <div class="profile-name"><?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?></div>
-        </div> 
             <li>
                 <ion-icon name="create-outline"></ion-icon>
                 <a href="Profile.php">Profile</a>

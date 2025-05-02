@@ -1,68 +1,4 @@
-<?php
-session_start();
-require_once 'SkillSwapDatabase.php';
-
-$db = new Database();
-$conn = $db->getConnection();
-
-// Get all users except the currently logged in user
-$current_user = isset($_SESSION['username']) ? $_SESSION['username'] : '';
-
-// Initialize or get shown users from session
-if (!isset($_SESSION['shown_users'])) {
-    $_SESSION['shown_users'] = [];
-}
-
-try {
-    // Get all available users that haven't been shown yet
-    $shown_users_str = implode("','", $_SESSION['shown_users']);
-    $shown_users_str = $shown_users_str ? "'" . $shown_users_str . "'" : "''";
-    
-    $stmt = $conn->prepare("SELECT username FROM users 
-                           WHERE username != :current_user 
-                           AND username NOT IN ($shown_users_str)
-                           ORDER BY RAND()");
-    $stmt->bindParam(':current_user', $current_user);
-    $stmt->execute();
-    $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // If no new users found, reset shown users and get all users again
-    if (empty($all_users)) {
-        $_SESSION['shown_users'] = [];
-        $stmt->execute();
-        $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-    
-    // Take the first 5 users for the initial stack
-    $users = array_slice($all_users, 0, 5);
-    
-} catch (PDOException $e) {
-    error_log("Database error: " . $e->getMessage());
-    $users = [];
-}
-
-// Handle match/nope actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action']) && isset($_POST['username'])) {
-        $action = $_POST['action'];
-        $username = $_POST['username'];
-        
-        // Add user to shown users
-        if (!in_array($username, $_SESSION['shown_users'])) {
-            $_SESSION['shown_users'][] = $username;
-        }
-        
-        // If it's a match, you can add additional logic here
-        if ($action === 'match') {
-            // Add match logic here (e.g., store in matches table)
-        }
-        
-        // Return success response
-        echo json_encode(['success' => true]);
-        exit;
-    }
-}
-?>
+<?php include 'menuu.php'; ?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -136,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             width: 600px;
             height: 550px;
             margin: 0 auto;
-            margin-top: 100px; /* Add margin to account for the menu */
         }
 
         .card {
@@ -148,7 +83,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 20px;
             transition: transform 0.5s ease, opacity 0.5s ease;
-            cursor: pointer;
+            display: block !important; /* Ensure the cards are displayed */
+            visibility: visible !important; /* Ensure the cards are visible */
+            background-color: #fff; /* Add a background color for visibility */
+            border: 1px solid #ddd; /* Add a border for visibility */
         }
 
         .card img {
@@ -212,8 +150,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             top: 20px;
             font-size: 18px;
             font-weight: bold;
-            cursor: pointer;
-            z-index: 10;
         }
 
         .card .nope {
@@ -227,15 +163,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .card:nth-child(1) {
-            transform: rotate(0deg);
+            transform: rotate(0deg); /* Ensure the first card is not rotated */
         }
 
         .card:nth-child(2) {
-            transform: rotate(-5deg);
+            transform: rotate(-5deg); /* Rotate the second card slightly to the left */
         }
 
         .card:nth-child(3) {
-            transform: rotate(5deg);
+            transform: rotate(5deg); /* Rotate the third card slightly to the right */
         }
 
         /* Responsive Styles */
@@ -329,8 +265,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-    <?php include 'menuu.php'; ?>
-
     <div class="container">
         <!-- Search Bar -->
         <div class="search-bar-container">
@@ -346,69 +280,131 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <!-- Card Container -->
-        <div class="card-container">
-            <?php foreach ($users as $index => $user): ?>
-            <div class="card" data-username="<?php echo htmlspecialchars($user['username']); ?>" 
-                 style="z-index: <?php echo count($users) - $index; ?>; 
-                        transform: rotate(<?php echo $index * 5; ?>deg);">
-                <img src="jane.jpg" alt="User Picture">
-                <div class="info">
-                    <h3><?php echo htmlspecialchars($user['username']); ?></h3>
-                    <p>TOPIC</p>
-                    <div class="nope" onclick="handleAction('nope', this)"><- Nope</div>
-                    <div class="match" onclick="handleAction('match', this)">Match -></div>
-                    <div class="offer">
-                        <div>WILL OFFER YOU</div>
-                        <div>IN EXCHANGE FOR</div>
-                    </div>
-                </div>
-            </div>
-            <?php endforeach; ?>
+        <div class="card-container" id="card-container">
+            <!-- Cards will be dynamically added here -->
         </div>
     </div>
 
     <script>
-        const cards = document.querySelectorAll('.card');
-        let currentCardIndex = 0;
+        function fetchUsers() {
+            fetch('fetch_users.php')
+                .then(response => response.json())
+                .then(users => {
+                    console.log('Fetched users:', users); // Debugging: Log the fetched users
 
-        function handleAction(action, element) {
-            const card = element.closest('.card');
-            const username = card.dataset.username;
-            
-            fetch('search.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=${action}&username=${username}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    swipeCard(action === 'match' ? 'right' : 'left');
+                    if (users.error) {
+                        console.error(users.error);
+                        return;
+                    }
+
+                    const cardContainer = document.getElementById('card-container');
+                    cardContainer.innerHTML = ''; // Clear existing cards
+
+                    if (users.length === 0) {
+                        cardContainer.innerHTML = '<p>No users found.</p>'; // Handle empty results
+                        return;
+                    }
+
+                    users.forEach(user => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+
+                        card.innerHTML = `
+                            <img src="default-profile.png" alt="User Picture"> <!-- Replace with actual user profile picture if available -->
+                            <div class="info">
+                                <h3>${user.First_Name}</h3>
+                                <p>${user.Skill}</p> <!-- Replace 'Skill' with the actual column name for the user's skill -->
+                                <div class="nope" onclick="handleNope(${user.User_ID})"><- Nope</div>
+                                <div class="match" onclick="handleMatch(${user.User_ID})">Match -></div>
+                                <div class="offer">
+                                    <div>${user.Offer}</div> <!-- Replace 'Offer' with the actual column name -->
+                                    <div>${user.Exchange}</div> <!-- Replace 'Exchange' with the actual column name -->
+                                </div>
+                            </div>
+                        `;
+
+                        cardContainer.appendChild(card);
+                    });
+
+                    // Reinitialize swipe functionality
+                    initializeSwipe();
+                })
+                .catch(error => console.error('Error fetching users:', error));
+        }
+
+        function initializeSwipe() {
+            const cards = document.querySelectorAll('.card');
+
+            if (cards.length === 0) {
+                console.log('No cards to initialize swipe functionality.'); // Debugging
+                return;
+            }
+
+            // Attach swipe functionality to the "Nope" and "Match" buttons
+            cards.forEach((card, index) => {
+                const nopeButton = card.querySelector('.nope');
+                const matchButton = card.querySelector('.match');
+
+                if (nopeButton) {
+                    nopeButton.onclick = () => swipeCard('left', index);
+                }
+
+                if (matchButton) {
+                    matchButton.onclick = () => swipeCard('right', index);
                 }
             });
         }
 
-        function swipeCard(direction) {
-            const currentCard = cards[currentCardIndex];
+        function swipeCard(direction, cardIndex) {
+            const cards = document.querySelectorAll('.card');
+            const currentCard = cards[cardIndex]; // Target the specific card
             if (!currentCard) return;
 
+            // Apply swipe animation
             if (direction === 'right') {
-                currentCard.style.transform = 'translateX(100%) rotate(30deg)';
+                currentCard.style.transform = 'translateX(100%)';
             } else if (direction === 'left') {
-                currentCard.style.transform = 'translateX(-100%) rotate(-30deg)';
+                currentCard.style.transform = 'translateX(-100%)';
             }
 
             currentCard.style.opacity = '0';
-            currentCardIndex++;
 
-            if (currentCardIndex < cards.length) {
-                cards[currentCardIndex].style.transform = 'rotate(0deg)';
-            } else {
-                window.location.reload();
-            }
+            // Remove the swiped card from the DOM after the animation
+            setTimeout(() => {
+                currentCard.remove();
+
+                // Reinitialize swipe functionality for the remaining cards
+                initializeSwipe();
+            }, 500); // Match the animation duration
         }
+
+        function handleMatch(receiverId) {
+            const message = prompt("Enter a message for the match (optional):");
+
+            fetch('match_user.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `receiver_id=${receiverId}&message=${encodeURIComponent(message || '')}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Match request sent successfully!');
+                        fetchUsers(); // Refresh the cards
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function handleNope(receiverId) {
+            // Perform any additional logic for "Nope" if needed
+            fetchUsers(); // Refresh the cards
+        }
+
+        // Fetch users on page load
+        fetchUsers();
     </script>
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>

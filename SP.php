@@ -15,16 +15,16 @@ class Crud {
             $stmt = $this->conn->prepare("CALL CreateUser(?, ?, ?, ?, ?, ?)");
             
             $stmt->execute([
-                $firstname,      // p_firstname
-                $lastname,       // p_lastname
-                $email,         // p_email
-                $password,      // p_password
-                $verificationCode, // p_verification_code
-                $isVerified ? 1 : 0  // p_is_verified
+                $firstname,      
+                $lastname,      
+                $email,        
+                $password,     
+                $verificationCode, 
+                $isVerified ? 1 : 0  
             ]);
 
         } catch (PDOException $e) {
-            // Check for the custom error from the stored procedure
+           
             if ($e->getCode() == '45000') {
                 throw new Exception('email_exists');
             } else {
@@ -33,6 +33,13 @@ class Crud {
         }    
     }
 
+    public function updatePassword($email, $newPassword) {
+        $stmt = $this->conn->prepare("CALL updatePassword(:email, :password)");
+        return $stmt->execute([
+            ':email' => $email,
+            ':password' => $newPassword
+        ]);
+    }
     
     
 }

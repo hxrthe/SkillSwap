@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -236,7 +235,7 @@
         }
     </script>
 </body>
-=======
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -417,18 +416,18 @@
             SkillSwap
         </div>
         <nav>
-            <a href="menu.php">HOME</a>
+            <a href="home.php">HOME</a>
             <a href="login.php">LOGIN</a>
             <a href="#about">ABOUT</a>
             <a href="#contact">CONTACT</a>
-            <a href="javascript:void(0)" onclick="toggleSidebar()">
+            <!-- <a href="javascript:void(0)" onclick="toggleSidebar()">
                 <ion-icon name="person-outline"></ion-icon>
             </a>
         </nav>
-        <div class="menu-icon" onclick="toggleMenu()">☰</div>
+        <div class="menu-icon" onclick="toggleMenu()">☰</div> -->
     </header>
 
-    <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+    <!-- <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <img src="mochi.png" alt="User Image" class="user-image">
@@ -445,7 +444,7 @@
             </li>
         </ul>
         <button class="logout-button" onclick="logout()">Logout</button>
-    </div>
+    </div> -->
 
     <div class="bg">
         <img src="ssbg5.png" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
@@ -474,5 +473,4 @@
         }
     </script>
 </body>
->>>>>>> 1aa449d29bd876b5f19c2eb9fd6f8aa004b310ba
 </html>

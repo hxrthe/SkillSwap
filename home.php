@@ -1,6 +1,29 @@
 <?php
-include 'menuu.php';
+session_start();
+
+require_once 'SkillSwapDatabase.php';
+require_once 'SP.php';
+
+// Redirect to login if user is not logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: loginpagee.php");
+    exit();
+}
+
+// Get user data
+$db = new Database();
+$conn = $db->getConnection();
+$stmt = $conn->prepare("SELECT * FROM users WHERE User_ID = :user_id");
+$stmt->execute([':user_id' => $_SESSION['user_id']]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Fetch all other users from the database
+$stmt = $conn->prepare("SELECT * FROM users WHERE User_ID != :user_id");
+$stmt->execute([':user_id' => $_SESSION['user_id']]);
+$allUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
+<?php include 'menuu.php'; ?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -13,6 +36,7 @@ include 'menuu.php';
             font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
+            background: linear-gradient(to right, #fdfd96, #fff);
             box-sizing: border-box;
         }
 
@@ -89,10 +113,10 @@ include 'menuu.php';
         }
 
         .card {
-            display: flex;
+            display: none; /* Hide all cards by default */
             flex-direction: column;
             width: 60%;
-            height: 500px;
+            height: 400px;
             margin-left: 80px;
             background-color: #fff;
             border: 1px solid #ddd;
@@ -100,6 +124,10 @@ include 'menuu.php';
             padding: 15px;
             margin-bottom: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card.active {
+            display: flex; /* Show only the active card */
         }
 
         .card-header {
@@ -305,6 +333,37 @@ include 'menuu.php';
                 font-size: 50px;
             }
         }
+
+        /* Add sliding animations */
+        @keyframes slideOutLeft {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .card.slide-left {
+            animation: slideOutLeft 0.5s forwards;
+        }
+
+        .card.slide-right {
+            animation: slideOutRight 0.5s forwards;
+        }
     </style>
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
@@ -323,37 +382,84 @@ include 'menuu.php';
             </div>
             <div class="matches-header">
                 <h2>Matches</h2>
-                <a href="#">See all matches ></a>
+                <a href="all_matches.php">See all matches ></a>
             </div>
-            <!-- Card -->
-            <div class="card">
-                <div class="card-header">
-                    <img src="mochi.png" alt="User Picture">
+
+            <!-- Loop through all users and display them as cards -->
+            <?php foreach ($allUsers as $index => $otherUser): ?>
+                <div class="card <?php echo $index === 0 ? 'active' : ''; ?>" id="card-<?php echo $index; ?>">
+                    <div class="card-header">
+                        <img src="default-profile.png" alt="User Picture"> <!-- Replace with actual user profile picture if available -->
+                        <div>
+                            <h3><?php echo htmlspecialchars($otherUser['First_Name']); ?></h3>
+                            <!-- <p><?php echo htmlspecialchars($otherUser['Skill']); ?></p> Replace 'Skill' with the actual column name for the user's skill -->
+                            <!-- <p><?php echo htmlspecialchars($otherUser['Location']); ?></p> Replace 'Location' with the actual column name for the user's location -->
+                        </div>
+                    </div>
                     <div>
-                        <h3>MOCHI</h3>
-                        <p>Web Development</p>
-                        <p>New York, USA</p>
+                        <a href="#" onclick="showNextCard(<?php echo $index; ?>, 'left')">Negotiate later</a> | 
+                        <a href="#" onclick="startNegotiation(<?php echo $otherUser['User_ID']; ?>)">Start negotiation</a>
+                    </div>
+                    <div class="card-content">
+                        <!-- <p>Will offer you: <?php echo htmlspecialchars($otherUser['Offer']); ?></p> Replace 'Offer' with the actual column name -->
+                        <!-- <p>In exchange for: <?php echo htmlspecialchars($otherUser['Exchange']); ?></p> Replace 'Exchange' with the actual column name -->
+                    </div>
+                    <div class="card-actions">
+                        <button>Contact</button>
                     </div>
                 </div>
-                <div>
-                    <a href="#">Negotiate later</a> | <a href="#">Start negotiation</a>
-                </div>
-                <div class="card-content">
-                    <p>Will offer you: Web Design</p>
-                    <p>In exchange for: Graphic Design</p>
-                </div>
-                <div class="card-actions">
-                    <button>Contact</button>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
 
         <!-- Right Section -->
         <div class="right-section">
-            <h1>Hi USER!</h1>
+            <h1>Hi <?php echo htmlspecialchars($user['First_Name']); ?>!</h1>
             <p>Let your skills shine through</p>
             <div class="skillswap">SKILLSWAP</div>
         </div>
     </div>
+
+    <script>
+        function showNextCard(currentIndex, direction) {
+            const currentCard = document.getElementById(`card-${currentIndex}`);
+            const nextCard = document.getElementById(`card-${currentIndex + 1}`);
+
+            if (currentCard) {
+                // Add sliding animation based on the direction
+                if (direction === 'left') {
+                    currentCard.classList.add('slide-left');
+                } else if (direction === 'right') {
+                    currentCard.classList.add('slide-right');
+                }
+
+                // Wait for the animation to complete before hiding the card
+                setTimeout(() => {
+                    currentCard.classList.remove('active', 'slide-left', 'slide-right');
+                    if (nextCard) {
+                        nextCard.classList.add('active'); // Show the next card
+                    }
+                }, 500); // Match the animation duration (0.5s)
+            }
+        }
+
+        function startNegotiation(receiverId) {
+            const message = prompt("Enter a message for the negotiation (optional):");
+
+            fetch('start_negotiation.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `receiver_id=${receiverId}&message=${encodeURIComponent(message || '')}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Negotiation request sent successfully!');
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
 </body>
 </html>
