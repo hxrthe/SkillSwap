@@ -75,18 +75,18 @@
         }
 
         .card {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            transition: transform 0.5s ease, opacity 0.5s ease;
             display: block !important; /* Ensure the cards are displayed */
             visibility: visible !important; /* Ensure the cards are visible */
             background-color: #fff; /* Add a background color for visibility */
             border: 1px solid #ddd; /* Add a border for visibility */
+            padding: 20px;
+            margin-bottom: 20px;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.5s ease, opacity 0.5s ease;
         }
 
         .card img {
@@ -286,8 +286,10 @@
     </div>
 
     <script>
+        let lastMessageId = 0; // Track the last message ID to avoid reloading all messages
+
         function fetchUsers() {
-            fetch('fetch_users.php')
+            fetch('fetch_users_for_search.php') // Use the PHP file to fetch users
                 .then(response => response.json())
                 .then(users => {
                     console.log('Fetched users:', users); // Debugging: Log the fetched users
@@ -313,12 +315,12 @@
                             <img src="default-profile.png" alt="User Picture"> <!-- Replace with actual user profile picture if available -->
                             <div class="info">
                                 <h3>${user.First_Name}</h3>
-                                <p>${user.Skill}</p> <!-- Replace 'Skill' with the actual column name for the user's skill -->
+                                <p>${user.Skill}</p>
                                 <div class="nope" onclick="handleNope(${user.User_ID})"><- Nope</div>
                                 <div class="match" onclick="handleMatch(${user.User_ID})">Match -></div>
                                 <div class="offer">
-                                    <div>${user.Offer}</div> <!-- Replace 'Offer' with the actual column name -->
-                                    <div>${user.Exchange}</div> <!-- Replace 'Exchange' with the actual column name -->
+                                    <div>${user.Offer}</div>
+                                    <div>${user.Exchange}</div>
                                 </div>
                             </div>
                         `;
@@ -403,8 +405,36 @@
             fetchUsers(); // Refresh the cards
         }
 
-        // Fetch users on page load
-        fetchUsers();
+        function loadMessages(requestId) {
+            fetch(`fetch_messages.php?request_id=${requestId}&last_message_id=${lastMessageId}`)
+                .then(response => response.json())
+                .then(messages => {
+                    console.log('Fetched messages:', messages); // Debugging: Log fetched messages
+
+                    if (messages.error) {
+                        console.error(messages.error);
+                        return;
+                    }
+
+                    const chatMessages = document.getElementById('chat-messages');
+
+                    messages.forEach(msg => {
+                        const messageElement = document.createElement('div');
+                        messageElement.textContent = `${msg.sender_name}: ${msg.message}`;
+                        chatMessages.appendChild(messageElement);
+
+                        // Update the last message ID
+                        lastMessageId = Math.max(lastMessageId, msg.id);
+                    });
+
+                    // Scroll to the bottom of the chat
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                })
+                .catch(error => console.error('Error fetching messages:', error));
+        }
+
+        // Call fetchUsers when the page loads
+        document.addEventListener('DOMContentLoaded', fetchUsers);
     </script>
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>

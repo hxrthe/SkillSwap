@@ -84,7 +84,7 @@
  </head>
  <body>
    <div class="header">
-     <img src="486355471_1047694797262653_8440216834434319319_n-removebg-preview.png" alt="Logo" class="logo-img">
+     <img src="assets/images/sslogo.png" alt="Logo" class="logo-img">
      <a href="Dashboard.php" class="site-name">SkillSwap</a>
    </div>
  
