@@ -54,13 +54,14 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
         }
 
         .chat-container {
-            margin-top: 50px;
-            max-width: 600px;
-            margin-left: 400px;
+            margin: 20px auto;
+            max-width: 90%; /* Adjust to fit smaller screens */
+            width: 600px; /* Default width for larger screens */
             background: #fff;
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .chat-header {
@@ -72,6 +73,9 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
 
         .chat-header h3 {
             margin: 0;
+            font-size: 1.5rem;
+            text-align: center;
+            flex: 1;
         }
 
         .chat-messages {
@@ -81,11 +85,13 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
             padding: 10px;
             margin-bottom: 20px;
             background-color: #fdfd96;
+            border-radius: 5px;
         }
 
         .chat-input {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
         }
 
         .chat-input input {
@@ -93,6 +99,7 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
+            font-size: 1rem;
         }
 
         .chat-input button {
@@ -102,6 +109,7 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 1rem;
         }
 
         .chat-input button:hover {
@@ -116,10 +124,53 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
             border-radius: 5px;
             cursor: pointer;
             margin-bottom: 20px;
+            font-size: 1rem;
         }
 
         .back-button:hover {
             background-color: #e53935;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 100%; /* Full width for smaller screens */
+                padding: 15px;
+            }
+
+            .chat-header h3 {
+                font-size: 1.2rem;
+            }
+
+            .chat-input input,
+            .chat-input button,
+            .back-button {
+                font-size: 0.9rem;
+            }
+
+            .chat-messages {
+                height: 250px; /* Adjust height for smaller screens */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chat-container {
+                padding: 10px;
+            }
+
+            .chat-header h3 {
+                font-size: 1rem;
+            }
+
+            .chat-messages {
+                height: 200px; /* Further adjust height for very small screens */
+            }
+
+            .chat-input input,
+            .chat-input button,
+            .back-button {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -127,7 +178,7 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
     <div class="chat-container">
         <button class="back-button" onclick="history.back()">Back</button>
         <div class="chat-header">
-            <h3>Chat with <?php echo htmlspecialchars($other_user_name); ?></h3>
+             <h3>Chat with <?php echo htmlspecialchars($other_user_name); ?></h3>
         </div>
         <div class="chat-messages" id="chat-messages">
             <!-- Chat messages will be dynamically loaded here -->
@@ -166,29 +217,16 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
         }
 
         function loadMessages(requestId) {
-            fetch(`fetch_messages.php?request_id=${requestId}&last_message_id=${lastMessageId}`)
+            fetch(`fetch_messages.php?request_id=${requestId}`)
                 .then(response => response.json())
                 .then(messages => {
-                    console.log('Fetched messages:', messages); // Debugging: Log fetched messages
-
-                    if (messages.error) {
-                        console.error(messages.error);
-                        return;
-                    }
-
                     const chatMessages = document.getElementById('chat-messages');
+                    chatMessages.innerHTML = ''; // Clear existing messages
 
                     messages.forEach(msg => {
-                        // Check if the message already exists in the chat
-                        if (document.querySelector(`#message-${msg.id}`)) return;
-
                         const messageElement = document.createElement('div');
-                        messageElement.id = `message-${msg.id}`; // Add a unique ID for each message
                         messageElement.textContent = `${msg.sender_name}: ${msg.message}`;
                         chatMessages.appendChild(messageElement);
-
-                        // Update the last message ID
-                        lastMessageId = Math.max(lastMessageId, msg.id);
                     });
 
                     // Scroll to the bottom of the chat
@@ -208,6 +246,11 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
             setInterval(() => {
                 loadMessages(requestId);
             }, 2000);
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMessages(<?php echo $request_id; ?>);
         });
     </script>
 </body>
