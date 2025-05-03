@@ -3,182 +3,201 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SkillSwap</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkillSwap Cards</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #FFEA61;
+      color: #000;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #000;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+      margin-top: 40px;
+    }
+
+    .card {
+      position: relative;
+      width: 90%;
+      max-width: 700px;
+      background-color: #111;
+      border: 2px solid #FFD700;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      margin-top: 20px; 
+    }
+
+    .card.right {
+      flex-direction: row-reverse;
+      margin-left: 50px;
+    }
+
+    .container .card:nth-child(1) {
+      margin-top: 50px;
+      transform: translateX(-380px); 
+    }
+
+    .container .card:nth-child(2) {
+      margin-top: -340px; 
+      transform: translateX(350px); 
+    }
+
+    .container .card:nth-child(3) {
+      margin-top: 10px; 
+      transform: translateX(380px); 
+    }
+
+    .container .card:nth-child(4) {
+      margin-top: -340px; 
+      transform: translateX(-400px); 
+    }
+
+    .card-image-container {
+      width: 50%;
+      height: 300px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .info {
+      width: 50%;
+      height: 300px;
+      background-color: rgba(0, 0, 0, 0.9);
+      color: #FFD700;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .placeholder {
+      font-size: 1.8em;
+      font-weight: bold;
+      transition: opacity 0.4s ease;
+      position: absolute;
+      z-index: 1;
+    }
+
+    .info-text {
+      position: absolute;
+      opacity: 0;
+      z-index: 2;
+      transform: translateX(-100%);
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+
+    .card.right .info-text {
+      transform: translateX(100%);
+    }
+
+    .card:hover .placeholder {
+      opacity: 0;
+    }
+
+    .card:hover .info-text {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .info-text ul {
+      list-style-type: disc;
+      margin-left: 20px;
+    }
+  </style>
 </head>
 <body>
 
-  <header>
-    <h1>SKILLSWAP</h1>
-  </header>
-
-  <img src="https://www.easygenerator.com/wp-content/uploads/2020/10/knowledge-sharing-workplace.png" alt="Knowledge Sharing" class="hero-image">
-
-  <div class="background-shapes">
-    <div class="shape"></div>
-    <div class="shape"></div>
-    <div class="shape"></div>
-    <div class="shape"></div>
-    <div class="shape"></div>
-    <div class="shape"></div>
-  </div>
-
   <div class="container">
-
-    <div class="section">
-      <h2>What is SkillSwap?</h2>
-      <p>SkillSwap is a platform where people share and barter their skills. Instead of money, users exchange what they are good at for something new they want to learn.</p>
+    <!-- Card 1 - SKILLSWAP -->
+    <div class="card">
+      <div class="card-image-container">
+        <img src="https://scontent.fmnl34-1.fna.fbcdn.net/v/t1.15752-9/482954870_1345965966623948_5736240018260320208_n.png?stp=dst-png_p480x480&_nc_cat=102&ccb=1-7&_nc_sid=0024fc&_nc_eui2=AeGcVN6KdfmUjYMfK9SWadfDsaPUWSiNab-xo9RZKI1pv8Gl_Rd2KNU-8QEDdVil_a-y3YSELzQzuElpiBqHf70U&_nc_ohc=zasVqMshDogQ7kNvwH1GP2T&_nc_oc=Adney4L-IXWwyD-sWLKS0pNjoa1GCjcTCs-AkQUsrHx-gO0hVCaNDVEbY6CeTf3rT2T-aLbqtdJdZHYmWQJesJus&_nc_ad=z-m&_nc_cid=5917&_nc_zt=23&_nc_ht=scontent.fmnl34-1.fna&oh=03_Q7cD2AHUBbG2shl32Rs1Atr-WFC3GVpO0NkWuxnCc1syjsS5mg&oe=683D224F" alt="SkillSwap">
+      </div>
+      <div class="info">
+        <div class="placeholder">SKILLSWAP</div>
+        <div class="info-text">
+          <p><strong>SkillSwap</strong> is a local, community-based platform designed to empower individuals by exchanging knowledge and skills. It operates like a modern barter system for expertise, where people can teach and learn from each other, all without monetary transactions.</p>
+        </div>
+      </div>
     </div>
 
-    <div class="section">
-      <h2>The Problem We Solve</h2>
-      <p>Many people want to learn new skills but lack the money for formal education. At the same time, they have talents they can offer. SkillSwap bridges that gap by connecting people through skill exchange.</p>
+    <!-- Card 2 - FEATURES -->
+    <div class="card right">
+      <div class="card-image-container">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRtQaYtaQ_zo32rb4uQpaIbFMV8XgBAl56QA&s" alt="Features">
+      </div>
+      <div class="info">
+        <div class="placeholder">FEATURES</div>
+        <div class="info-text">
+          <ul>
+            <li><strong>Skill Exchange:</strong> Offer your skills and learn new ones from others in your community.</li>
+            <li><strong>Community Building:</strong> Foster meaningful connections through shared learning experiences.</li>
+            <li><strong>Free of Charge:</strong> No money involved, just a passion for learning and teaching.</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
-    <div class="section">
-      <h2>Features</h2>
-      <ul>
-        <li><strong>Skill Exchange:</strong> Offer your skills and learn new ones from others in your community.</li>
-        <li><strong>Community Building:</strong> Foster meaningful connections through shared learning experiences.</li>
-        <li><strong>Free of Charge:</strong> No money involved, just a passion for learning and teaching.</li>
-      </ul>
+    <!-- Card 3 - HOW IT WORKS -->
+    <div class="card">
+      <div class="card-image-container">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAwTfNQvrUBLqS082BWSr2vUQrcOLzPYgjfg&s" alt="How It Works">
+      </div>
+      <div class="info">
+        <div class="placeholder">HOW IT WORKS</div>
+        <div class="info-text">
+          <ol>
+            <li><strong>Sign Up:</strong> Create an account on the platform.</li>
+            <li><strong>List Your Skills:</strong> Share what you can teach and specify what you're interested in learning.</li>
+            <li><strong>Connect:</strong> Find individuals who match your interests and start swapping skills.</li>
+            <li><strong>Collaborate:</strong> Schedule sessions and engage in productive skill exchanges.</li>
+          </ol>
+        </div>
+      </div>
     </div>
 
-    <div class="section">
-      <h2>How It Works</h2>
-      <ul>
-        <li>Post the skill you want to learn and what you can offer in return</li>
-        <li>Browse the community for people looking for your expertise</li>
-        <li>Connect, agree on an exchange, and start growing your talents</li>
-        <li>Learn new things while helping others develop their strengths</li>
-      </ul>
+    <!-- Card 4 - WHY SKILLSWAP? -->
+    <div class="card right">
+      <div class="card-image-container">
+        <img src="https://cdn.elearningindustry.com/wp-content/uploads/2019/10/7-Benefits-That-Highlight-The-Importance-Of-Soft-Skills-In-The-Workplace.png" alt="Why SkillSwap?">
+      </div>
+      <div class="info">
+        <div class="placeholder">WHY SKILLSWAP?</div>
+        <div class="info-text">
+          <ul>
+            <li><strong>Accessibility:</strong> Learning opportunities for everyone, regardless of financial status.</li>
+            <li><strong>Empowerment:</strong> Share your expertise and enrich others' lives.</li>
+            <li><strong>Sustainability:</strong> Promote a culture of generosity and mutual growth.</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
   </div>
 
 </body>
 </html>
-
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-
-  body {
-    margin: 0;
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #FFD700, #FFF8DC);
-    color: #000;
-    overflow-x: hidden;
-  }
-
-  header {
-    background-color: #FFD700;
-    padding: 40px 20px;
-    text-align: center;
-    position: relative;
-  }
-
-  header h1 {
-    margin: 0;
-    color: #000000;
-    font-size: 3rem;
-  }
-
-  .hero-image {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-  }
-
-  .container {
-    padding: 60px 20px;
-    max-width: 1200px;
-    margin: auto;
-    position: relative;
-    z-index: 2;
-  }
-
-  .section {
-    margin-bottom: 60px;
-  }
-
-  h2 {
-    color: #000;
-    font-size: 2.5rem;
-    margin-bottom: 20px;
-    position: relative;
-  }
-
-  h2::after {
-    content: '';
-    width: 60px;
-    height: 4px;
-    background: #000;
-    position: absolute;
-    bottom: -10px;
-    left: 0;
-  }
-
-  p, li {
-    color: #333;
-    font-size: 1.2rem;
-    margin-top: 10px;
-  }
-
-  ul {
-    list-style: disc;  
-    padding-left: 20px;  
-  }
-
-  .cta-button {
-    display: inline-block;
-    padding: 15px 35px;
-    background-color: #000;
-    color: #FFD700;
-    font-weight: bold;
-    font-size: 1.2rem;
-    text-decoration: none;
-    border-radius: 50px;
-    transition: all 0.3s ease;
-  }
-
-  .cta-button:hover {
-    background-color: #333;
-    transform: scale(1.05);
-    box-shadow: 0px 0px 20px #000;
-  }
-
-  .section-center {
-    text-align: center;
-  }
-
-  .background-shapes {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    z-index: 0;
-    pointer-events: none;
-  }
-
-  .shape {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 50%;
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .background-shapes div:nth-child(1) { width: 80px; height: 80px; top: 10%; left: 5%; animation-delay: 0s; }
-  .background-shapes div:nth-child(2) { width: 120px; height: 120px; top: 30%; left: 80%; animation-delay: 1s; }
-  .background-shapes div:nth-child(3) { width: 60px; height: 60px; top: 70%; left: 20%; animation-delay: 2s; }
-  .background-shapes div:nth-child(4) { width: 100px; height: 100px; top: 50%; left: 40%; animation-delay: 3s; }
-  .background-shapes div:nth-child(5) { width: 90px; height: 90px; top: 20%; left: 60%; animation-delay: 4s; }
-  .background-shapes div:nth-child(6) { width: 70px; height: 70px; top: 80%; left: 75%; animation-delay: 5s; }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
-  }
-</style>
