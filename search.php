@@ -174,6 +174,30 @@
             transform: rotate(5deg); /* Rotate the third card slightly to the right */
         }
 
+        .accept-button, .decline-button {
+            display: inline-block; /* Ensure buttons are displayed */
+            background-color: #4CAF50; /* Accept button color */
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .decline-button {
+            background-color: #f44336; /* Decline button color */
+        }
+
+        .accept-button:hover {
+            background-color: #45a049;
+        }
+
+        .decline-button:hover {
+            background-color: #d32f2f;
+        }
+
         /* Responsive Styles */
         @media screen and (max-width: 1024px) {
             .card-container {
@@ -283,6 +307,10 @@
         <div class="card-container" id="card-container">
             <!-- Cards will be dynamically added here -->
         </div>
+
+        <div id="requests" class="tab-content">
+            <!-- Requests will be dynamically added here -->
+        </div>
     </div>
 
     <script>
@@ -382,14 +410,24 @@
 
         function handleMatch(receiverId) {
             const message = prompt("Enter a message for the match (optional):");
+            const appointmentDate = prompt("Enter an appointment date and time (YYYY-MM-DD HH:MM:SS):");
+
+            if (!appointmentDate) {
+                alert("Appointment date is required.");
+                return;
+            }
+
+            console.log('Sending match request to receiver ID:', receiverId);
 
             fetch('match_user.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `receiver_id=${receiverId}&message=${encodeURIComponent(message || '')}`
+                body: `receiver_id=${receiverId}&message=${encodeURIComponent(message || '')}&appointment_date=${encodeURIComponent(appointmentDate)}`
             })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Response from match_user.php:', data);
+
                     if (data.success) {
                         alert('Match request sent successfully!');
                         fetchUsers(); // Refresh the cards
@@ -431,6 +469,64 @@
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 })
                 .catch(error => console.error('Error fetching messages:', error));
+        }
+
+        function fetchIncomingRequests() {
+            fetch('fetch_incoming_requests.php')
+                .then(response => response.json())
+                .then(incomingRequests => {
+                    const requestsTab = document.getElementById('requests');
+                    requestsTab.innerHTML = ''; // Clear existing content
+
+                    if (incomingRequests.error) {
+                        requestsTab.innerHTML = `<p>${incomingRequests.error}</p>`;
+                        return;
+                    }
+
+                    if (incomingRequests.length === 0) {
+                        requestsTab.innerHTML = '<p>No incoming requests found.</p>';
+                        return;
+                    }
+
+                    incomingRequests.forEach(request => {
+                        const requestElement = document.createElement('div');
+                        requestElement.className = 'request';
+                        requestElement.style.border = '1px solid #ddd'; // Add border for visibility
+                        requestElement.style.padding = '10px'; // Add padding for better layout
+                        requestElement.style.marginBottom = '10px'; // Add spacing between requests
+
+                        requestElement.innerHTML = `
+                            <h3>Request from ${request.sender_name}</h3>
+                            <p><strong>Status:</strong> ${request.status}</p>
+                            <p><strong>Appointment:</strong> ${request.appointment_date || 'Not set'}</p>
+                            <button class="accept-button" onclick="updateRequestStatus(${request.id}, 'accepted')">Accept</button>
+                            <button class="decline-button" onclick="updateRequestStatus(${request.id}, 'declined')">Decline</button>
+                        `;
+                        requestsTab.appendChild(requestElement);
+                    });
+                })
+                .catch(error => console.error('Error fetching incoming requests:', error));
+        }
+
+        function updateRequestStatus(requestId, status) {
+            fetch('update_request_status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `request_id=${requestId}&status=${status}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`Request ${status} successfully!`);
+                        fetchIncomingRequests(); // Refresh the requests tab
+                        if (status === 'accepted') {
+                            fetchOngoingRequests(); // Refresh the ongoing tab if accepted
+                        }
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error updating request status:', error));
         }
 
         // Call fetchUsers when the page loads

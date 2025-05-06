@@ -16,14 +16,17 @@ try {
     $db = new Database();
     $conn = $db->getConnection();
 
-    // Call the stored procedure
-    $stmt = $conn->prepare("CALL FetchAvailableUsers(:current_user_id)");
-    $stmt->bindParam(':current_user_id', $user_id, PDO::PARAM_INT);
-    $stmt->execute();
+    $stmt = $conn->prepare("
+        SELECT r.*, u.First_Name AS sender_name
+        FROM requests r
+        JOIN users u ON r.sender_id = u.User_ID
+        WHERE r.receiver_id = :receiver_id
+        ORDER BY r.created_at DESC
+    ");
+    $stmt->execute([':receiver_id' => $user_id]);
+    $incomingRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    echo json_encode($users);
+    echo json_encode($incomingRequests);
 } catch (Exception $e) {
     echo json_encode(['error' => $e->getMessage()]);
 }

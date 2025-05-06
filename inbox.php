@@ -236,6 +236,35 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .chat-button:hover {
             background-color: #45a049;
         }
+
+        .accept-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .accept-button:hover {
+            background-color: #45a049;
+        }
+
+        .decline-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .decline-button:hover {
+            background-color: #d32f2f;
+        }
     </style>
 </head>
 <body>
@@ -250,23 +279,81 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Tab Content -->
     <div id="requests" class="tab-content">
-        <div id="requests-container">
-            <!-- Requests will be dynamically loaded here -->
-        </div>
+        <script>
+            function fetchIncomingRequests() {
+                fetch('fetch_incoming_requests.php')
+                    .then(response => response.json())
+                    .then(incomingRequests => {
+                        const requestsTab = document.getElementById('requests');
+                        requestsTab.innerHTML = ''; // Clear existing content
+
+                        if (incomingRequests.error) {
+                            requestsTab.innerHTML = `<p>${incomingRequests.error}</p>`;
+                            return;
+                        }
+
+                        if (incomingRequests.length === 0) {
+                            requestsTab.innerHTML = '<p>No incoming requests found.</p>';
+                            return;
+                        }
+
+                        incomingRequests.forEach(request => {
+                            const requestElement = document.createElement('div');
+                            requestElement.className = 'request';
+                            requestElement.innerHTML = `
+                                <h3>Request from ${request.sender_name}</h3>
+                                <p>${request.message}</p>
+                                <p><strong>Status:</strong> ${request.status}</p>
+                                <p><strong>Appointment:</strong> ${request.appointment_date || 'Not set'}</p>
+                            `;
+                            requestsTab.appendChild(requestElement);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching incoming requests:', error));
+            }
+
+            document.addEventListener('DOMContentLoaded', fetchIncomingRequests);
+        </script>
     </div>
 
     <div id="sent" class="tab-content">
-        <?php if (count($sentRequests) > 0): ?>
-            <?php foreach ($sentRequests as $request): ?>
-                <div class="request">
-                    <h3>Request to <?php echo htmlspecialchars($request['receiver_name']); ?></h3>
-                    <p><?php echo htmlspecialchars($request['message']); ?></p>
-                    <p><strong>Status:</strong> <?php echo htmlspecialchars($request['status']); ?></p>
-                </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <p>No sent requests found.</p>
-        <?php endif; ?>
+        <script>
+            function fetchSentRequests() {
+                fetch('fetch_sent_requests.php')
+                    .then(response => response.json())
+                    .then(sentRequests => {
+                        console.log('Sent Requests:', sentRequests); // Debugging: Log the response
+
+                        const sentTab = document.getElementById('sent');
+                        sentTab.innerHTML = ''; // Clear existing content
+
+                        if (sentRequests.error) {
+                            sentTab.innerHTML = `<p>${sentRequests.error}</p>`;
+                            return;
+                        }
+
+                        if (sentRequests.length === 0) {
+                            sentTab.innerHTML = '<p>No sent requests found.</p>';
+                            return;
+                        }
+
+                        sentRequests.forEach(request => {
+                            const requestElement = document.createElement('div');
+                            requestElement.className = 'request';
+                            requestElement.innerHTML = `
+                                <h3>Request to ${request.receiver_name}</h3>
+                                <p>${request.message}</p>
+                                <p><strong>Status:</strong> ${request.status}</p>
+                                <p><strong>Appointment:</strong> ${request.appointment_date || 'Not set'}</p>
+                            `;
+                            sentTab.appendChild(requestElement);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching sent requests:', error));
+            }
+
+            document.addEventListener('DOMContentLoaded', fetchSentRequests);
+        </script>
     </div>
 
     <div id="ongoing" class="tab-content">
