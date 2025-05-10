@@ -82,6 +82,15 @@ $currentSkills = $stmt->fetch(PDO::FETCH_ASSOC)['current_skills'];
 
 include 'menuu.php';
 
+error_log("Number of unmatched users: " . count($unmatchedUsers));
+if (!empty($unmatchedUsers)) {
+    error_log("First unmatched user: " . print_r($unmatchedUsers[0], true));
+} else {
+    error_log("No unmatched users found.");
+}
+
+error_log("Users data passed to frontend: " . json_encode($unmatchedUsers));
+
 ?>
 
 <!DOCTYPE html>
@@ -92,7 +101,7 @@ include 'menuu.php';
     <title>Find Matches</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <style>
-        :root {
+        /* :root {
             --bg-color: #ffffff;
             --text-color: #333333;
             --card-bg: #f8f9fa;
@@ -106,15 +115,15 @@ include 'menuu.php';
             --card-bg: #2d2d2d;
             --border-color: #444444;
             --primary-color: #66BB6A;
-        }
+        } */
 
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
             margin: 0;
             padding: 0;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
+            box-sizing: border-box;
         }
 
         .container {
@@ -1141,7 +1150,8 @@ include 'menuu.php';
         };
 
         function displayUsers(users) {
-            const cardsContainer = document.querySelector('.card-container');
+            console.log('Users to display:', users); // Debug log
+            const cardsContainer = document.getElementById('card-container');
             cardsContainer.innerHTML = '';
 
             if (users.length === 0) {
@@ -1150,67 +1160,36 @@ include 'menuu.php';
             }
 
             users.forEach((user, index) => {
+                console.log('Rendering user:', user); // Debug log
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.dataset.userId = user.User_ID; // Store user ID in card data
                 card.dataset.index = index; // Store card index
                 card.innerHTML = `
                     <div class="card-content">
-                        <div class="user-info">
-                            <div class="profile-image">
-                                <img src="${user.Profile_Picture || 'default-profile.png'}" alt="${user.First_Name} ${user.Last_Name}">
-                            </div>
-                            <div class="info">
-                                <h3>${user.First_Name} ${user.Last_Name}</h3>
-                                <p>${user.Bio || 'No bio added yet'}</p>
-                                <div class="skills">
-                                    <h4>Skills I Can Share:</h4>
-                                    <div class="skill-list">
-                                        ${user.can_share_skills ? user.can_share_skills.split(',').map(skill => `
-                                            <span class="skill-tag">${skill.trim()}</span>
-                                        `).join('') : '<span class="skill-tag">No skills shared yet</span>'}
-                                    </div>
-                                    <h4>Skills I Want to Learn:</h4>
-                                    <div class="skill-list">
-                                        ${user.want_to_learn_skills ? user.want_to_learn_skills.split(',').map(skill => `
-                                            <span class="skill-tag">${skill.trim()}</span>
-                                        `).join('') : '<span class="skill-tag">No skills to learn yet</span>'}
-                                    </div>
+                        <div class="profile-image">
+                            <img src="${user.Profile_Picture || 'default-profile.png'}" alt="${user.First_Name} ${user.Last_Name}">
+                        </div>
+                        <div class="info">
+                            <h3>${user.First_Name} ${user.Last_Name}</h3>
+                            <p>${user.Bio || 'No bio added yet'}</p>
+                            <div class="skills">
+                                <h4>Skills I Can Share:</h4>
+                                <div class="skill-list">
+                                    ${user.can_share_skills ? user.can_share_skills.split(',').map(skill => `
+                                        <span class="skill-tag">${skill.trim()}</span>
+                                    `).join('') : '<span class="skill-tag">No skills shared yet</span>'}
+                                </div>
+                                <h4>Skills I Want to Learn:</h4>
+                                <div class="skill-list">
+                                    ${user.want_to_learn_skills ? user.want_to_learn_skills.split(',').map(skill => `
+                                        <span class="skill-tag">${skill.trim()}</span>
+                                    `).join('') : '<span class="skill-tag">No skills to learn yet</span>'}
                                 </div>
                             </div>
                         </div>
-                        <div class="action-buttons">
-                            <button class="nope-btn" onclick="swipeCard('left', ${index})">Nope</button>
-                            <button class="match-btn" onclick="swipeCard('right', ${index})">Match</button>
-                            <button class="match-btn" onclick="sendMatchRequest(${user.User_ID})">Send Match Request</button>
-                        </div>
                     </div>
                 `;
-                
-                // Add event listeners for better touch support
-                const matchBtn = card.querySelector('.match-btn');
-                const nopeBtn = card.querySelector('.nope-btn');
-                
-                if (matchBtn) {
-                    matchBtn.addEventListener('click', (e) => {
-                        e.preventDefault(); // Prevent default behavior
-                        e.stopPropagation(); // Prevent event from bubbling up
-                        
-                        // Get the card index from the data attribute
-                        const cardIndex = parseInt(card.dataset.index);
-                        swipeCard('right', cardIndex);
-                    });
-                }
-                if (nopeBtn) {
-                    nopeBtn.addEventListener('click', (e) => {
-                        e.preventDefault(); // Prevent default behavior
-                        e.stopPropagation(); // Prevent event from bubbling up
-                        
-                        // Get the card index from the data attribute
-                        const cardIndex = parseInt(card.dataset.index);
-                        swipeCard('left', cardIndex);
-                    });
-                }
                 cardsContainer.appendChild(card);
             });
         }
@@ -1629,6 +1608,7 @@ include 'menuu.php';
 
         // Call fetchUsers when the page loads
         document.addEventListener('DOMContentLoaded', fetchUsers);
+        console.log('Users data:', usersData);
     </script>
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>

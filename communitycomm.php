@@ -1,3 +1,4 @@
+
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -9,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$communityName = isset($_GET['community_name']) ? htmlspecialchars($_GET['community_name']) : 'Community';
+$communityName = isset($_GET['community_name']) ? $_GET['community_name'] : 'Community';
 $communityId = isset($_GET['community_id']) ? intval($_GET['community_id']) : 0;
 
 require_once 'SkillSwapDatabase.php';
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['content'])) {
                 ':Community_ID' => $_POST['community_id'],
                 ':content' => $_POST['content']
             ]);
-            header('Location: ' . $_SERVER['PHP_SELF'] . '?community_id=' . urlencode($_POST['community_id']) . '&community_name=' . urlencode($communityName));
+            header('Location: ' . $_SERVER['PHP_SELF'] . '?community_id=' . urlencode($communityId) . '&community_name=' . urlencode($communityName));
             exit;
         } catch (PDOException $e) {
             $error = "Failed to create post: " . $e->getMessage();
@@ -128,7 +129,8 @@ include 'menuu.php';
             font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
-            background: #f0f2f5;
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
             box-sizing: border-box;
         }
 
@@ -330,7 +332,7 @@ include 'menuu.php';
                             <ion-icon name="<?php echo $hasLiked ? 'thumbs-up' : 'thumbs-up-outline'; ?>"></ion-icon>
                             Like (<?php echo $post['like_count']; ?>)
                         </a>
-                        <a href="comments.php?post_id=<?php echo $post['Post_ID']; ?>&community_id=<?php echo $communityId; ?>&community_name=<?php echo urlencode($communityName); ?>" 
+                        <a href="comments.php?post_id=<?php echo $post['Post_ID']; ?>&community_id=<?php echo urlencode($communityId); ?>&community_name=<?php echo urlencode($communityName); ?>" 
                            class="action-button">
                             <ion-icon name="chatbubble-outline"></ion-icon>
                             Comment (<?php echo $post['comment_count']; ?>)

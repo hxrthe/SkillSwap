@@ -1,22 +1,42 @@
+
 <?php
 session_start();
 require_once 'SkillSwapDatabase.php';
 
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', 'php_errors.log');
+
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    exit('Not logged in');
+    echo json_encode(['success' => false, 'message' => 'Not logged in']);
+    exit();
 }
 
-$db = new Database();
-$conn = $db->getConnection();
-
 try {
-    // Prepare the update query
+    $db = new Database();
+    $conn = $db->getConnection();
+    
+    if (!$conn) {
+        throw new Exception("Database connection failed");
+    }
+
+    // Check if bio column exists, if not create it
+    $checkBioColumn = $conn->query("SHOW COLUMNS FROM users LIKE 'bio'");
+    if ($checkBioColumn->rowCount() === 0) {
+        $conn->exec("ALTER TABLE users ADD COLUMN bio TEXT");
+    }
+
+    $response = ['success' => true, 'message' => 'Profile updated successfully'];
     $updateFields = [];
     $params = [];
 
     // Handle profile picture if uploaded
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
+        error_log("Profile picture upload started");
+        
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $maxSize = 2 * 1024 * 1024; // 2MB
 
@@ -27,16 +47,47 @@ try {
 
         // Check file type
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if (!$finfo) {
+            throw new Exception('Failed to open file info');
+        }
+        
         $fileType = finfo_file($finfo, $_FILES['profile_picture']['tmp_name']);
         finfo_close($finfo);
+
+        error_log("File type detected: " . $fileType);
 
         if (!in_array($fileType, $allowedTypes)) {
             throw new Exception('Invalid file type. Allowed types: JPG, PNG, GIF, WEBP');
         }
 
+        // Read the image
         $imageData = file_get_contents($_FILES['profile_picture']['tmp_name']);
-        $updateFields[] = 'profile_picture = :profile_picture';
-        $params[':profile_picture'] = $imageData;
+        if ($imageData === false) {
+            throw new Exception('Failed to read image file');
+        }
+        
+        error_log("Image data read successfully, size: " . strlen($imageData));
+
+        // Update the profile picture in the database
+        $stmt = $conn->prepare("UPDATE users SET profile_picture = :profile_picture WHERE User_ID = :user_id");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare profile picture update statement: " . print_r($conn->errorInfo(), true));
+        }
+
+        $result = $stmt->execute([
+            ':profile_picture' => $imageData,
+            ':user_id' => $_SESSION['user_id']
+        ]);
+
+        if (!$result) {
+            error_log("Database update failed: " . print_r($stmt->errorInfo(), true));
+            throw new Exception("Failed to update profile picture in database");
+        }
+
+        error_log("Profile picture updated in database successfully");
+
+        // Add the profile picture URL to the response
+        $response['profile_pic_url'] = 'data:' . $fileType . ';base64,' . base64_encode($imageData);
     }
 
     // Handle bio update
@@ -57,25 +108,30 @@ try {
         $params[':skills_learn'] = $_POST['skills_learn'];
     }
 
-    if (empty($updateFields)) {
-        throw new Exception('No fields to update');
+    // If there are other fields to update
+    if (!empty($updateFields)) {
+        $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE User_ID = :user_id";
+        $params[':user_id'] = $_SESSION['user_id'];
+
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Failed to prepare profile update statement: " . print_r($conn->errorInfo(), true));
+        }
+
+        $result = $stmt->execute($params);
+
+        if (!$result) {
+            error_log("Failed to update other profile fields: " . print_r($stmt->errorInfo(), true));
+            throw new Exception("Failed to update profile");
+        }
     }
 
-    // Build the SQL query
-    $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE User_ID = :user_id";
-    $params[':user_id'] = $_SESSION['user_id'];
-
-    // Execute the update
-    $stmt = $conn->prepare($sql);
-    $result = $stmt->execute($params);
-
-    if (!$result) {
-        throw new PDOException("Failed to update profile");
-    }
-
-    echo json_encode(['status' => 'success', 'message' => 'Profile updated successfully']);
+    error_log("Profile update completed successfully");
+    echo 'success';
 
 } catch (Exception $e) {
+    error_log("Profile update error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    echo 'Failed to update profile: ' . $e->getMessage();
 }

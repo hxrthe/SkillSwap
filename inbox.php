@@ -47,7 +47,8 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            background: linear-gradient(to right, #fdfd96, #fff);
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
             padding: 20px;
         }
 

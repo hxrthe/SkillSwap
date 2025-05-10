@@ -105,8 +105,6 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         function editProfile() {
             // Get current user's data
             const currentBio = document.querySelector('.bio-text').textContent;
-            const currentSkillsShare = document.querySelector('#skills-can-share').textContent;
-            const currentSkillsLearn = document.querySelector('#skills-want-to-learn').textContent;
 
             Swal.fire({
                 title: 'Edit Profile',
@@ -117,15 +115,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     </div>
                     <div class="input-group">
                         <label>Bio</label>
-                        <textarea class="swal2-textarea" placeholder="Tell us about yourself">${currentBio}</textarea>
-                    </div>
-                    <div class="input-group">
-                        <label>Skills I Can Share</label>
-                        <input type="text" class="swal2-input" placeholder="Add skills (comma separated)" value="${currentSkillsShare}">
-                    </div>
-                    <div class="input-group">
-                        <label>Skills I Want to Learn</label>
-                        <input type="text" class="swal2-input" placeholder="Add skills (comma separated)" value="${currentSkillsLearn}">
+                        <textarea id="bioTextarea" class="swal2-textarea" placeholder="Tell us about yourself">${currentBio}</textarea>
                     </div>
                 `,
                 showCancelButton: true,
@@ -135,26 +125,39 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
                     const fileInput = document.getElementById('profilePicInput');
+                    const bioTextarea = document.getElementById('bioTextarea');
                     const formData = new FormData();
-                    if (fileInput.files.length > 0) {
+                    
+                    if (fileInput && fileInput.files.length > 0) {
                         formData.append('profile_picture', fileInput.files[0]);
                     }
-                    formData.append('bio', document.querySelector('.swal2-textarea').value);
-                    formData.append('skills_share', document.querySelectorAll('.swal2-input')[0].value);
-                    formData.append('skills_learn', document.querySelectorAll('.swal2-input')[1].value);
+                    
+                    if (bioTextarea) {
+                        formData.append('bio', bioTextarea.value);
+                    }
 
                     return fetch('update_profile.php', {
                         method: 'POST',
                         body: formData
-                    }).then(response => {
-                        if (!response.ok) {
-                            return response.text().then(text => {
-                                throw new Error(text || 'Failed to update profile');
-                            });
+                    })
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            if (!response.ok || !data.success) {
+                                throw new Error(data.message || 'Server error occurred');
+                            }
+                            return data;
+                        } else {
+                            const text = await response.text();
+                            if (text.trim() !== 'success') {
+                                throw new Error(text || 'Server error occurred');
+                            }
+                            return { success: true };
                         }
-                        return response.text();
-                    }).catch(error => {
-                        Swal.showValidationMessage(`Upload failed: ${error.message}`);
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.message}`);
                     });
                 }
             }).then((result) => {
@@ -171,27 +174,43 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             });
         }
 
+
         // Skills Modal Functions
 
 
-        function openSkillsModal(event) {
-            event.preventDefault();
+        function openSkillsModal(skillType) {
             const modal = document.getElementById('skillsModal');
-            modal.style.display = 'block';
-            
-            // Determine which section was clicked
-            const target = event.target;
-            const container = target.closest('.skills-container');
-            
-            if (container.id === 'skills-container') {
-                currentSkillType = 'want_to_learn';
-            } else {
-                currentSkillType = 'can_share';
-            }
-            
+            modal.style.display = 'block'; // Show the modal
+
+            // Set the current skill type
+            currentSkillType = skillType;
+
             // Update modal title based on skill type
-            document.querySelector('.modal-content h2').textContent = 
-                currentSkillType === 'can_share' ? 'Select Up to 3 Skills You Can Share' : 'Select Up to 3 Skills You Want to Learn';
+            document.querySelector('.modal-content h2').textContent =
+                skillType === 'can_share' ? 'Select Skills You Can Share' : 'Select Skills You Want to Learn';
+
+            // Load predefined skills into the modal (optional)
+            fetch('fetch_predefined_skills.php')
+                .then(response => response.json())
+                .then(data => {
+                    const skillsList = document.querySelector('.skills-list');
+                    skillsList.innerHTML = ''; // Clear existing skills
+
+                    if (data.success && data.skills.length > 0) {
+                        data.skills.forEach(skill => {
+                            const skillItem = document.createElement('div');
+                            skillItem.className = 'skill-item';
+                            skillItem.innerHTML = `
+                                <input type="checkbox" id="skill_${skill.id}" value="${skill.skill_name}">
+                                <label for="skill_${skill.id}">${skill.skill_name}</label>
+                            `;
+                            skillsList.appendChild(skillItem);
+                        });
+                    } else {
+                        skillsList.innerHTML = '<p>No skills available.</p>';
+                    }
+                })
+                .catch(error => console.error('Error fetching predefined skills:', error));
         }
 
         function saveSkills() {
@@ -303,10 +322,11 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
             margin: 0;
             padding: 0;
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
+            box-sizing: border-box;
             min-height: 100vh;
         }
 
@@ -612,7 +632,11 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         ?>
         <div class="profile-header">
             <div class="profile-avatar">
-                <i class='bx bxs-user'></i>
+                <?php if (!empty($user['profile_picture'])): ?>
+                    <img src="data:image/jpeg;base64,<?php echo base64_encode($user['profile_picture']); ?>" alt="Profile Picture" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; display: block;">
+                <?php else: ?>
+                    <i class='bx bxs-user' style="font-size: 64px; color: #333;"></i>
+                <?php endif; ?>
             </div>
             <div class="profile-info">
                 <div class="profile-name"><?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?></div>
@@ -645,31 +669,37 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             <div class="profile-section">
                 <div class="section-title">About Me</div>
                 <div class="bio-text">
-                    No bio added yet. Click edit to add your bio.
+                    <?php
+                        if (!empty($user['bio'])) {
+                            echo nl2br(htmlspecialchars($user['bio']));
+                        } else {
+                            echo "No bio added yet. Click edit to add your bio.";
+                        }
+                    ?>
                 </div>
             </div>
 
             <div class="profile-section">
-                <div class="section-title">Skills I Can Share</div>
-                <div class="skills-container" id="skills-can-share">
-                    <!-- Skills will be dynamically loaded here -->
-                </div>
-                <button class="add-skill-btn" onclick="openSkillsModal('can_share')">Add Skills You Can Share</button>
-            </div>
+    <div class="section-title">Skills I Can Share</div>
+    <div class="skills-container" id="skills-can-share">
+        <!-- Skills will be dynamically loaded here -->
+    </div>
+    <button class="add-skill-btn" onclick="openSkillsModal('can_share')">Add Skills You Can Share</button>
+</div>
 
-            <div class="profile-section">
-                <div class="section-title">Skills I Want to Learn</div>
-                <div class="skills-container" id="skills-want-to-learn">
-                    <!-- Skills will be dynamically loaded here -->
-                </div>
-                <button class="add-skill-btn" onclick="openSkillsModal('want_to_learn')">Add Skills You Want to Learn</button>
-            </div>
+<div class="profile-section">
+    <div class="section-title">Skills I Want to Learn</div>
+    <div class="skills-container" id="skills-want-to-learn">
+        <!-- Skills will be dynamically loaded here -->
+    </div>
+    <button class="add-skill-btn" onclick="openSkillsModal('want_to_learn')">Add Skills You Want to Learn</button>
+</div>
 
             <!-- Skills Modal -->
             <div id="skillsModal" class="modal">
                 <div class="modal-content">
                     <span class="close" onclick="closeSkillsModal()">&times;</span>
-                    <h2>Select Up to 3 Skills</h2>
+                    <h2>Select Skills</h2>
                     <div class="skills-list">
                         <!-- Skills will be dynamically loaded here -->
                     </div>
@@ -1147,25 +1177,113 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     <script>
 
+            // Edit Profile Function
+        function editProfile() {
+            // Get current user's data
+            const currentBio = document.querySelector('.bio-text').textContent;
 
-        function openSkillsModal(event) {
-            event.preventDefault();
+            Swal.fire({
+                title: 'Edit Profile',
+                html: `
+                    <div class="input-group">
+                        <label>Profile Picture</label>
+                        <input type="file" id="profilePicInput" accept="image/*" class="swal2-file">
+                    </div>
+                    <div class="input-group">
+                        <label>Bio</label>
+                        <textarea id="bioTextarea" class="swal2-textarea" placeholder="Tell us about yourself">${currentBio}</textarea>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save Changes',
+                confirmButtonColor: '#ffeb3b',
+                cancelButtonText: 'Cancel',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    const fileInput = document.getElementById('profilePicInput');
+                    const bioTextarea = document.getElementById('bioTextarea');
+                    const formData = new FormData();
+                    
+                    if (fileInput && fileInput.files.length > 0) {
+                        formData.append('profile_picture', fileInput.files[0]);
+                    }
+                    
+                    if (bioTextarea) {
+                        formData.append('bio', bioTextarea.value);
+                    }
+
+                    return fetch('update_profile.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            if (!response.ok || !data.success) {
+                                throw new Error(data.message || 'Server error occurred');
+                            }
+                            return data;
+                        } else {
+                            const text = await response.text();
+                            if (text.trim() !== 'success') {
+                                throw new Error(text || 'Server error occurred');
+                            }
+                            return { success: true };
+                        }
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.message}`);
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Profile Updated!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                }
+            });
+        }
+
+
+        function openSkillsModal(skillType) {
             const modal = document.getElementById('skillsModal');
-            modal.style.display = 'block';
-            
-            // Determine which section was clicked
-            const target = event.target;
-            const container = target.closest('.skills-container');
-            
-            if (container.id === 'skills-container') {
-                currentSkillType = 'want_to_learn';
-            } else {
-                currentSkillType = 'can_share';
-            }
-            
+            modal.style.display = 'block'; // Show the modal
+
+            // Set the current skill type
+            currentSkillType = skillType;
+
             // Update modal title based on skill type
-            document.querySelector('.modal-content h2').textContent = 
-                currentSkillType === 'can_share' ? 'Select Up to 3 Skills You Can Share' : 'Select Up to 3 Skills You Want to Learn';
+            document.querySelector('.modal-content h2').textContent =
+                skillType === 'can_share' ? 'Select Skills You Can Share' : 'Select Skills You Want to Learn';
+
+            // Load predefined skills into the modal (optional)
+            fetch('fetch_predefined_skills.php')
+                .then(response => response.json())
+                .then(data => {
+                    const skillsList = document.querySelector('.skills-list');
+                    skillsList.innerHTML = ''; // Clear existing skills
+
+                    if (data.success && data.skills.length > 0) {
+                        data.skills.forEach(skill => {
+                            const skillItem = document.createElement('div');
+                            skillItem.className = 'skill-item';
+                            skillItem.innerHTML = `
+                                <input type="checkbox" id="skill_${skill.id}" value="${skill.skill_name}">
+                                <label for="skill_${skill.id}">${skill.skill_name}</label>
+                            `;
+                            skillsList.appendChild(skillItem);
+                        });
+                    } else {
+                        skillsList.innerHTML = '<p>No skills available.</p>';
+                    }
+                })
+                .catch(error => console.error('Error fetching predefined skills:', error));
         }
 
         function saveSkills() {
@@ -1208,237 +1326,6 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             }
         }
 
-        // Edit Profile Function
-        function editProfile() {
-            // Get current user's data
-            const currentBio = document.querySelector('.bio-text').textContent;
-            const currentSkillsShare = document.querySelector('#skills-can-share').textContent;
-            const currentSkillsLearn = document.querySelector('#skills-want-to-learn').textContent;
-
-            Swal.fire({
-                title: 'Edit Profile',
-                html: `
-                    <div class="input-group">
-                        <label>Profile Picture</label>
-                        <input type="file" id="profilePicInput" accept="image/*" class="swal2-file">
-                    </div>
-                    <div class="input-group">
-                        <label>Bio</label>
-                        <textarea class="swal2-textarea" placeholder="Tell us about yourself">${currentBio}</textarea>
-                    </div>
-                    <div class="input-group">
-                        <label>Skills I Can Share</label>
-                        <input type="text" class="swal2-input" placeholder="Add skills (comma separated)" value="${currentSkillsShare}">
-                    </div>
-                    <div class="input-group">
-                        <label>Skills I Want to Learn</label>
-                        <input type="text" class="swal2-input" placeholder="Add skills (comma separated)" value="${currentSkillsLearn}">
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Save Changes',
-                confirmButtonColor: '#ffeb3b',
-                cancelButtonText: 'Cancel',
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    const fileInput = document.getElementById('profilePicInput');
-                    const formData = new FormData();
-                    if (fileInput.files.length > 0) {
-                        formData.append('profile_picture', fileInput.files[0]);
-                    }
-                    formData.append('bio', document.querySelector('.swal2-textarea').value);
-                    formData.append('skills_share', document.querySelectorAll('.swal2-input')[0].value);
-                    formData.append('skills_learn', document.querySelectorAll('.swal2-input')[1].value);
-
-                    return fetch('update_profile.php', {
-                        method: 'POST',
-                        body: formData
-                    }).then(response => {
-                        if (!response.ok) {
-                            return response.text().then(text => {
-                                throw new Error(text || 'Failed to update profile');
-                            });
-                        }
-                        return response.text();
-                    }).catch(error => {
-                        Swal.showValidationMessage(`Upload failed: ${error.message}`);
-                    });
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Profile Updated!',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
-                        location.reload();
-                    });
-                }
-            });
-        }
-
-        // function saveProfileChanges(bio, canShareSkills, wantToLearnSkills) {
-        //     // Add your save logic here
-        //     return new Promise((resolve) => {
-        //         setTimeout(() => {
-        //             resolve();
-        //             Swal.fire({
-        //                 icon: 'success',
-        //                 title: 'Profile Updated!',
-        //                 html: 'Your profile has been updated successfully.',
-        //                 showCancelButton: true,
-        //                 showConfirmButton: true,
-        //                 confirmButtonText: 'OK',
-        //                 cancelButtonText: 'Cancel',
-        //                 confirmButtonColor: '#ffeb3b',
-        //                 cancelButtonColor: '#6c757d',
-        //                 allowOutsideClick: true,
-
-        // Edit Profile Function
-        function editProfile() {
-            console.log('Edit profile button clicked');
-            // Get current user's data
-            const currentBio = document.querySelector('.bio-text').textContent;
-
-            Swal.fire({
-                title: 'Edit Profile',
-                html: `
-                    <div class="input-group">
-                        <label>Profile Picture</label>
-                        <input type="file" id="profilePicInput" accept="image/*" class="swal2-file">
-                    </div>
-                    <div class="input-group">
-                        <label>Bio</label>
-                        <textarea class="swal2-textarea" placeholder="Tell us about yourself">${currentBio}</textarea>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Save Changes',
-                confirmButtonColor: '#ffeb3b',
-                cancelButtonText: 'Cancel',
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    const fileInput = document.getElementById('profilePicInput');
-                    const formData = new FormData();
-                    if (fileInput.files.length > 0) {
-                        formData.append('profile_picture', fileInput.files[0]);
-                    }
-                    formData.append('bio', document.querySelector('.swal2-textarea').value);
-                    formData.append('skills_share', document.querySelectorAll('.swal2-input')[0].value);
-                    formData.append('skills_learn', document.querySelectorAll('.swal2-input')[1].value);
-                    formData.append('user_id', '<?php echo $_SESSION["user_id"]; ?>');
-
-                    return fetch('update_profile.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update the bio text on the page
-                            document.querySelector('.bio-text').textContent = document.querySelector('.swal2-textarea').value;
-                            document.querySelector('#skills-can-share').textContent = document.querySelectorAll('.swal2-input')[0].value;
-                            document.querySelector('#skills-want-to-learn').textContent = document.querySelectorAll('.swal2-input')[1].value;
-                            
-                            // Refresh the profile picture if it was updated
-                            if (fileInput.files.length > 0) {
-                                const profilePicElement = document.querySelector('.profile-avatar img');
-                                if (profilePicElement) {
-                                    profilePicElement.src = data.profile_pic_url;
-                                }
-                            }
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        console.error('Error updating profile:', error);
-                        throw new Error('Failed to update profile');
-                    });
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Profile Updated!',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
-                        location.reload();
-                    });
-                }
-            });
-        }
-
-        function saveSkills() {
-            fetch('save_skills.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    skills: currentSkills,
-                    skill_type: currentSkillType
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Skills saved successfully!',
-                        icon: 'success'
-                    });
-                    loadSavedSkills(currentSkillType); // Reload saved skills
-                } else {
-            alert(data.error || 'An error occurred while saving skills'); // Display the backend error message
-        }
-            });
-            closeSkillsModal();
-        }
-
-        function closeSkillsModal() {
-            const modal = document.getElementById('skillsModal');
-            if (modal) {
-                modal.style.display = 'none';
-            }
-        }
-
-        let currentSkillType = ''; // Track the current skill type
-        let currentSkills = []; // Track selected skills
-
-        function openSkillsModal(skillType) {
-            currentSkillType = skillType; // Set the current skill type
-            const modal = document.getElementById('skillsModal');
-            modal.style.display = 'block';
-
-            // Update modal title based on skill type
-            document.querySelector('.modal-content h2').textContent =
-                skillType === 'can_share' ? 'Select Skills You Can Share' : 'Select Skills You Want to Learn';
-
-            // Load predefined skills into the modal
-            fetch('fetch_predefined_skills.php')
-                .then(response => response.json())
-                .then(data => {
-                    const skillsList = document.querySelector('.skills-list');
-                    skillsList.innerHTML = ''; // Clear existing skills
-
-                    if (data.success && data.skills.length > 0) {
-                        data.skills.forEach(skill => {
-                            const skillItem = document.createElement('div');
-                            skillItem.className = 'skill-item';
-                            skillItem.innerHTML = `
-                                <input type="checkbox" id="skill_${skill.id}" value="${skill.skill_name}">
-                                <label for="skill_${skill.id}">${skill.skill_name}</label>
-                            `;
-                            skillsList.appendChild(skillItem);
-                        });
-                    } else {
-                        skillsList.innerHTML = '<p>No skills available.</p>';
-                    }
-                })
-                .catch(error => console.error('Error fetching predefined skills:', error));
-        }
     </script>
     <style>
         .skills-list {
