@@ -378,7 +378,7 @@ include 'menuu.php';
                     font-size: 13px;
                     padding: 4px 8px;
                 }
-            }
+            
 
             @media (max-width: 480px) {
                 .card {
