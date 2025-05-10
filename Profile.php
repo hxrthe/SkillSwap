@@ -933,63 +933,93 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             Swal.fire({
                 title: 'Edit Profile',
                 html: `
-                    <div class="form-group">
+                    <div class="input-group">
+                        <label>Profile Picture</label>
+                        <input type="file" id="profilePicInput" accept="image/*" class="swal2-file">
+                    </div>
+                    <div class="input-group">
                         <label>Bio</label>
-                        <textarea id="bio" rows="4" placeholder="Tell us about yourself"></textarea>
+                        <textarea class="swal2-textarea" placeholder="Tell us about yourself"></textarea>
                     </div>
-                    <div class="form-group">
+                    <div class="input-group">
                         <label>Skills I Can Share</label>
-                        <input type="text" id="can-share-skills" placeholder="Add skills (comma separated)">
+                        <input type="text" class="swal2-input" placeholder="Add skills (comma separated)">
                     </div>
-                    <div class="form-group">
+                    <div class="input-group">
                         <label>Skills I Want to Learn</label>
-                        <input type="text" id="want-to-learn-skills" placeholder="Add skills (comma separated)">
+                        <input type="text" class="swal2-input" placeholder="Add skills (comma separated)">
                     </div>
                 `,
                 showCancelButton: true,
                 confirmButtonText: 'Save Changes',
                 confirmButtonColor: '#ffeb3b',
                 cancelButtonText: 'Cancel',
-                cancelButtonColor: '#dc3545'
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    const fileInput = document.getElementById('profilePicInput');
+                    const formData = new FormData();
+                    if (fileInput.files.length > 0) {
+                        formData.append('profile_picture', fileInput.files[0]);
+                    }
+                    formData.append('bio', document.querySelector('.swal2-textarea').value);
+                    formData.append('skills_share', document.querySelectorAll('.swal2-input')[0].value);
+                    formData.append('skills_learn', document.querySelectorAll('.swal2-input')[1].value);
+
+                    return fetch('update_profile.php', {
+                        method: 'POST',
+                        body: formData
+                    }).then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                throw new Error(text || 'Failed to update profile');
+                            });
+                        }
+                        return response.text();
+                    }).catch(error => {
+                        Swal.showValidationMessage(`Upload failed: ${error.message}`);
+                    });
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    const bio = document.getElementById('bio').value;
-                    const canShareSkills = document.getElementById('can-share-skills').value;
-                    const wantToLearnSkills = document.getElementById('want-to-learn-skills').value;
-
-                    // Save the changes
-                    saveProfileChanges(bio, canShareSkills, wantToLearnSkills);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Profile Updated!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
                 }
             });
         }
 
-        function saveProfileChanges(bio, canShareSkills, wantToLearnSkills) {
-            // Add your save logic here
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Profile Updated!',
-                        html: 'Your profile has been updated successfully.',
-                        showCancelButton: true,
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        cancelButtonText: 'Cancel',
-                        confirmButtonColor: '#ffeb3b',
-                        cancelButtonColor: '#6c757d',
-                        allowOutsideClick: true,
-                        allowEscapeKey: true,
-                        allowEnterKey: true
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            // User clicked OK
-                            // You can add any additional logic here if needed
-                        }
-                    });
-                }, 1000);
-            });
-        }
+        // function saveProfileChanges(bio, canShareSkills, wantToLearnSkills) {
+        //     // Add your save logic here
+        //     return new Promise((resolve) => {
+        //         setTimeout(() => {
+        //             resolve();
+        //             Swal.fire({
+        //                 icon: 'success',
+        //                 title: 'Profile Updated!',
+        //                 html: 'Your profile has been updated successfully.',
+        //                 showCancelButton: true,
+        //                 showConfirmButton: true,
+        //                 confirmButtonText: 'OK',
+        //                 cancelButtonText: 'Cancel',
+        //                 confirmButtonColor: '#ffeb3b',
+        //                 cancelButtonColor: '#6c757d',
+        //                 allowOutsideClick: true,
+        //                 allowEscapeKey: true,
+        //                 allowEnterKey: true
+        //             }).then((result) => {
+        //                 if (result.isConfirmed) {
+        //                     // User clicked OK
+        //                     // You can add any additional logic here if needed
+        //                 }
+        //             });
+        //         }, 1000);
+        //     });
+        // }
     </script>
 </body>
 </html>
