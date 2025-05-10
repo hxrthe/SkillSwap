@@ -219,5 +219,162 @@ class Crud {
         }
     }
 
+    public function createAnnouncement($admin_id, $title, $content) {
+        $stmt = $this->conn->prepare("CALL createAnnouncement(:admin_id, :title, :content)");
+        return $stmt->execute([
+            ':admin_id' => $admin_id,      
+            ':title' => $title,
+            ':content' => $content
+        ]);
+    }
+
+    public function restrictUser($user_id, $status, $reason, $restricted_until, $admin_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL RestrictUser(?, ?, ?, ?, ?)");
+            return $stmt->execute([$user_id, $status, $reason, $restricted_until, $admin_id]);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function removeRestriction($user_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL RemoveRestriction(?)");
+            return $stmt->execute([$user_id]);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getAllUsersWithRestrictions() {
+        try {
+            $stmt = $this->conn->prepare("CALL GetAllUsersWithRestrictions()");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getRestrictedUsers() {
+        try {
+            $stmt = $this->conn->prepare("CALL GetRestrictedUsers()");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function banUser($user_id, $reason, $restricted_until, $admin_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL BanUser(?, ?, ?, ?)");
+            return $stmt->execute([$user_id, $reason, $restricted_until, $admin_id]);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getBannedUsers() {
+        try {
+            $stmt = $this->conn->prepare("CALL GetBannedUsers()");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getUserStatistics($start_date, $end_date) {
+        try {
+            $stmt = $this->conn->prepare("CALL GetUserStatistics(?, ?)");
+            $stmt->execute([$start_date, $end_date]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getRestrictionStatistics($start_date, $end_date) {
+        try {
+            $stmt = $this->conn->prepare("CALL GetRestrictionStatistics(?, ?)");
+            $stmt->execute([$start_date, $end_date]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getDailyUserRegistrations($start_date, $end_date) {
+        try {
+            $stmt = $this->conn->prepare("CALL GetDailyUserRegistrations(?, ?)");
+            $stmt->execute([$start_date, $end_date]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getDailyRestrictions($start_date, $end_date) {
+        try {
+            $stmt = $this->conn->prepare("CALL GetDailyRestrictions(?, ?)");
+            $stmt->execute([$start_date, $end_date]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getDailyPosts($start_date, $end_date) {
+        try {
+            $stmt = $this->conn->prepare("CALL GetDailyPosts(?, ?)");
+            $stmt->execute([$start_date, $end_date]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getDailyComments($start_date, $end_date) {
+        try {
+            $stmt = $this->conn->prepare("CALL GetDailyComments(?, ?)");
+            $stmt->execute([$start_date, $end_date]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function getSystemStatistics() {
+        try {
+            $stmt = $this->conn->prepare("CALL GetSystemStatistics()");
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+    public function getUserActivityStatistics($start_date, $end_date) {
+        try {
+            $stmt = $this->conn->prepare("CALL GetUserActivityStatistics(?, ?)");
+            $stmt->execute([$start_date, $end_date]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function createAdmin($firstName, $lastName, $email, $password, $role, $is_active = true) {
+        try {
+            $stmt = $this->conn->prepare("CALL CreateAdmin(?, ?, ?, ?, ?)");
+            return $stmt->execute([$firstName, $lastName, $email, $password, $role]);
+        } catch (PDOException $e) {
+            if ($e->getCode() == '45000') {
+                throw new Exception('email_exists');
+            }
+            throw $e;
+        }
+    }
+
 }
 ?>

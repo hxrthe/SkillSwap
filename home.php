@@ -60,7 +60,7 @@ $allUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .search-bar-container {
             position: relative;
             width: 65%;
-            margin-left: 80px;
+            margin-left: 30px;
             margin-top: 20px;
             margin-bottom: 20px;
         }
@@ -96,7 +96,7 @@ $allUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             justify-content: space-between;
             align-items: center;
             font-size: 50px;
-            margin-left: 80px;
+            margin-left: 30px;
             margin-bottom: 20px;
         }
 
@@ -117,7 +117,7 @@ $allUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             flex-direction: column;
             width: 60%;
             height: 400px;
-            margin-left: 80px;
+            margin-left: 30px;
             background-color: #fff;
             border: 1px solid #ddd;
             border-radius: 10px;
@@ -192,6 +192,8 @@ $allUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .right-section h1 {
             font-size: 70px;
             width: 50%;
+            padding-left: 1px;
+            margin-right: 50px;
             margin-top: 80px;
         }
 
@@ -204,6 +206,8 @@ $allUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 100px;
             width: 50%;
             font-weight: bold;
+            padding-left: 1px;
+            margin-right: 100px;
             color: rgb(0, 0, 0);
         }
 

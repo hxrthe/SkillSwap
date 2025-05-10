@@ -351,7 +351,7 @@ include 'menuu.php';
         .match-request .info h4 {
             margin: 0;
             font-size: 16px;
-            color: var(--text-color);
+            color: var (--text-color);
         }
 
         .match-request .info p {
@@ -814,7 +814,7 @@ include 'menuu.php';
             margin-bottom: 20px;
             position: absolute;
             width: 100%;
-            height: 100%;
+            height: 60%;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.5s ease, opacity 0.5s ease;
@@ -846,28 +846,54 @@ include 'menuu.php';
             background-color: #fce76c;
         }
 
-        .card .info {
-            margin-top: 10%;
-        }
-
-        .card .info h3 {
-            margin: 0;
-            font-size: 18px;
-        }
-
-        .card .info p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .card .info .offer {
+        .card.action-buttons {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
             display: flex;
-            justify-content: space-between;
-            margin-top: 10%;
+            gap: 10px;
+            z-index: 1;
         }
 
-        .card .info .offer div {
+        .action-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nope-btn {
+            background-color: #ff4444;
+            color: white;
+        }
+
+        .match-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .action-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .card .action-icons .x {
+            color: #444;
+        }
+
+        .card .action-icons .heart {
+            color: #ff4444;
+            margin-right: 60px;
+        }
+
+        .card .action-icons .heart:hover {
+            transform: scale(1.2);
+        }
+
+     .card .info .offer div {
             background-color: #fdfd96;
             padding: 5px 10px;
             border-radius: 5px;
@@ -1046,7 +1072,6 @@ include 'menuu.php';
         <!-- Toggle Buttons -->
         <div class="toggle-buttons">
             <button class="active" onclick="filterBarters('online')">Online Barters</button>
-            <button onclick="filterBarters('in-person')">Barters in Person</button>
         </div>
 
         <!-- Card Container -->
@@ -1128,6 +1153,7 @@ include 'menuu.php';
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.dataset.userId = user.User_ID; // Store user ID in card data
+                card.dataset.index = index; // Store card index
                 card.innerHTML = `
                     <div class="card-content">
                         <div class="user-info">
@@ -1153,12 +1179,38 @@ include 'menuu.php';
                                 </div>
                             </div>
                         </div>
-                        <div class="action-icons">
-                            <i class="bx bx-x x" onclick="swipeCard('left', ${index})"></i>
-                            <i class="bx bx-heart heart" onclick="swipeCard('right', ${index})"></i>
+                        <div class="action-buttons">
+                            <button class="nope-btn" onclick="swipeCard('left', ${index})">Nope</button>
+                            <button class="match-btn" onclick="swipeCard('right', ${index})">Match</button>
+                            <button class="match-btn" onclick="sendMatchRequest(${user.User_ID})">Send Match Request</button>
                         </div>
                     </div>
                 `;
+                
+                // Add event listeners for better touch support
+                const matchBtn = card.querySelector('.match-btn');
+                const nopeBtn = card.querySelector('.nope-btn');
+                
+                if (matchBtn) {
+                    matchBtn.addEventListener('click', (e) => {
+                        e.preventDefault(); // Prevent default behavior
+                        e.stopPropagation(); // Prevent event from bubbling up
+                        
+                        // Get the card index from the data attribute
+                        const cardIndex = parseInt(card.dataset.index);
+                        swipeCard('right', cardIndex);
+                    });
+                }
+                if (nopeBtn) {
+                    nopeBtn.addEventListener('click', (e) => {
+                        e.preventDefault(); // Prevent default behavior
+                        e.stopPropagation(); // Prevent event from bubbling up
+                        
+                        // Get the card index from the data attribute
+                        const cardIndex = parseInt(card.dataset.index);
+                        swipeCard('left', cardIndex);
+                    });
+                }
                 cardsContainer.appendChild(card);
             });
         }
@@ -1168,72 +1220,97 @@ include 'menuu.php';
             const currentCard = cards[cardIndex];
             if (!currentCard) return;
 
-            // Get the user ID from the card data
-            const userId = currentCard.dataset.userId; // Get user ID from card data
-            console.log('Sending match request to user ID:', userId); // Debug log
-            
-            // Apply swipe animation
-            if (direction === 'right') {
-                currentCard.style.transform = 'translateX(100%)';
-                // Send match request
-                sendMatchRequest(userId);
-            } else if (direction === 'left') {
-                currentCard.style.transform = 'translateX(-100%)';
-            }
+            // Prevent multiple clicks during animation
+            currentCard.style.pointerEvents = 'none';
 
-            // Apply swipe animation
+            // Get the user ID from the card data
+            const userId = currentCard.dataset.userId;
+            if (!userId) {
+                console.error('No user ID found for card');
+                return;
+            }
+            console.log('Sending match request to user ID:', userId);
+            
+            // Apply swipe animation with transition
+            currentCard.style.transition = 'transform 0.5s ease-out, opacity 0.5s ease-out';
             currentCard.style.transform = direction === 'right' ? 'translateX(100%)' : 'translateX(-100%)';
             currentCard.style.opacity = '0';
 
-            // Remove card after animation
-            setTimeout(() => {
+            // Add animation end listener
+            currentCard.addEventListener('transitionend', () => {
                 if (direction === 'right') {
-                    // Only remove after successful match request
+                    // Only send match request for right swipe
                     sendMatchRequest(userId).then(() => {
+                        // Remove card after successful match request
                         currentCard.remove();
                         initializeSwipe();
-                    }).catch(() => {
-                        // If request fails, keep the card visible
+                    }).catch((error) => {
+                        console.error('Match request failed:', error);
+                        // Reset card position on error
                         currentCard.style.transform = 'translateX(0)';
                         currentCard.style.opacity = '1';
+                        currentCard.style.pointerEvents = 'auto';
+                        
+                        // Show error message
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message || 'Failed to send match request'
+                        });
                     });
                 } else {
                     // For left swipe, remove immediately
                     currentCard.remove();
                     initializeSwipe();
                 }
-            }, 500);
+            }, { once: true });
+
+            // Only send match request for right swipe
+            if (direction === 'right') {
+                sendMatchRequest(userId).then(() => {
+                    // Remove card after successful match request
+                    currentCard.remove();
+                    initializeSwipe();
+                }).catch((error) => {
+                    console.error('Match request failed:', error);
+                    // Reset card position on error
+                    currentCard.style.transform = 'translateX(0)';
+                    currentCard.style.opacity = '1';
+                    
+                    // Show error message
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message || 'Failed to send match request'
+                    });
+                });
+            } else {
+                // For left swipe, remove immediately
+                currentCard.remove();
+                initializeSwipe();
+            }
         }
 
-        function sendMatchRequest(receiverId) {
-            return new Promise((resolve, reject) => {
-                const message = prompt("Enter a message for the match (optional): ");
+        async function sendMatchRequest(userId) {
+            console.log("Sending match request for user ID:", userId);
+            try {
+                const response = await fetch('send_match_request.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `receiver_id=${userId}`
+                });
 
-                if (confirm("Are you sure you want to send this match request?")) {
-                    fetch('match_user.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `sender_id=${currentUserId}&receiver_id=${receiverId}&message=${encodeURIComponent(message || '')}`
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert('Match request sent successfully!');
-                                resolve();
-                            } else {
-                                alert('Failed to send match request: ' + (data.error || 'Unknown error'));
-                                reject(new Error(data.error || 'Failed to send match request'));
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error sending match request:', error);
-                            alert('An error occurred while sending the match request');
-                            reject(error);
-                        });
+                const data = await response.json();
+                console.log("Response from server:", data);
+
+                if (data.success) {
+                    alert("Match request sent successfully!");
                 } else {
-                    reject(new Error('Match request cancelled'));
+                    alert("Error: " + data.error);
                 }
-            });
+            } catch (error) {
+                console.error("Error sending match request:", error);
+            }
         }
 
         function handleMatch(receiverId) {
@@ -1355,6 +1432,199 @@ include 'menuu.php';
                     }
                 })
                 .catch(error => console.error('Error updating request status:', error));
+        }
+
+        // Call fetchUsers when the page loads
+        document.addEventListener('DOMContentLoaded', fetchUsers);
+    </script>
+    <script>
+        // Pass PHP data to JavaScript
+        const usersData = <?php echo json_encode($unmatchedUsers); ?>;
+        const currentUserId = <?php echo json_encode($currentUserId); ?>;
+
+        function displayUsers(users) {
+            const cardsContainer = document.getElementById('card-container');
+            cardsContainer.innerHTML = '';
+
+            if (users.length === 0) {
+                cardsContainer.innerHTML = '<div class="no-users">No users found</div>';
+                return;
+            }
+
+            users.forEach((user, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.zIndex = users.length - index;
+                card.style.transform = `translateX(${index * 10}px)`;
+                card.dataset.userId = user.User_ID;
+
+                card.innerHTML = `
+                    <div class="card-content">
+                        <div class="profile-image">
+                            <img src="${user.Profile_Picture || 'default-profile.png'}" alt="${user.First_Name} ${user.Last_Name}" />
+                        </div>
+                        <h3>${user.First_Name} ${user.Last_Name}</h3>
+                        <p class="skills">
+                            <span class="can-share">Can Share: ${user.can_share_skills || 'None'}</span><br />
+                            <span class="want-to-learn">Want to Learn: ${user.want_to_learn_skills || 'None'}</span>
+                        </p>
+                        <div class="card-buttons">
+                            <button class="match-btn" onclick="sendMatchRequest(${user.User_ID})">Send Match Request</button>
+                        </div>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    displayUserDetails(user);
+                });
+
+                cardsContainer.appendChild(card);
+            });
+        }
+
+        // Add modal HTML
+        const modalHTML = `
+            <div id="matchConfirmationModal" class="modal">
+                <div class="modal-content">
+                    <h3>Confirm Match Request</h3>
+                    <p>Are you sure you want to send a match request to this user?</p>
+                    <input type="hidden" id="matchUserId" name="matchUserId">
+                    <div class="modal-buttons">
+                        <button id="confirmMatch" class="confirm-btn">Confirm</button>
+                        <button id="cancelMatch" class="cancel-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Add modal styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+            }
+            .modal-content {
+                background-color: white;
+                margin: 15% auto;
+                padding: 20px;
+                border-radius: 8px;
+                width: 80%;
+                max-width: 500px;
+                position: relative;
+            }
+            .modal-buttons {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                margin-top: 20px;
+            }
+            .confirm-btn {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+            .cancel-btn {
+                background-color: #f44336;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Function to show match confirmation modal
+        function showMatchConfirmation(userId) {
+            const modal = document.getElementById('matchConfirmationModal');
+            const confirmBtn = document.getElementById('confirmMatch');
+            const cancelBtn = document.getElementById('cancelMatch');
+            
+            // Set the user ID in the modal
+            document.getElementById('matchUserId').value = userId;
+            
+            modal.style.display = 'block';
+            
+            // Handle confirmation
+            confirmBtn.onclick = () => {
+                sendMatchRequest(userId);
+                modal.style.display = 'none';
+            };
+            
+            // Handle cancellation
+            cancelBtn.onclick = () => {
+                modal.style.display = 'none';
+            };
+        }
+
+        // Function to send match request
+        function sendMatchRequest(userId) {
+            fetch('send_match_request.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sender_id: currentUserId,
+                    receiver_id: userId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Match request sent successfully!');
+                    fetchUsers(); // Refresh the list
+                } else {
+                    alert('Error sending match request: ' + data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Call fetchUsers when the page loads
+        document.addEventListener('DOMContentLoaded', fetchUsers);
+                             <div>
+                                 <p>
+                                     <span class="want-to-learn">Want to Learn: ${user.want_to_learn_skills || 'None'}</span>
+                                 </p>
+                                 <div class="action-buttons">
+                                     <button onclick="swipeCard('left', ${index})" class="swipe-left">Not Interested</button>
+                                     <button onclick="swipeCard('right', ${index})" class="swipe-right">Interested</button>
+                                     <button onclick="showMatchConfirmation(${user.User_ID})" class="match-btn">Send Match Request</button>
+                                 </div>
+                             </div>
+                    
+                
+
+                cardsContainer.appendChild(card);
+            
+        // Initialize the display when the page loads
+        displayUsers(usersData);
+
+        async function fetchUsers() {
+            try {
+                const response = await fetch('fetch_users.php');
+                const data = await response.json();
+                if (data.success) {
+                    displayUsers(data.users);
+                } else {
+                    console.error('Error fetching users:', data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
         }
 
         // Call fetchUsers when the page loads

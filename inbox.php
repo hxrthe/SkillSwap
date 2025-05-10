@@ -1,3 +1,4 @@
+
 <?php include 'menuu.php'; ?>
 <?php
 if (session_status() === PHP_SESSION_NONE) {
@@ -304,8 +305,10 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <h3>Request from ${request.sender_name}</h3>
                                 <p>${request.message}</p>
                                 <p><strong>Status:</strong> ${request.status}</p>
-                                <p><strong>Appointment:</strong> ${request.appointment_date || 'Not set'}</p>
-                            `;
+                                <div class="request-actions">
+                                    <button class="accept-button" onclick="acceptRequest(${request.id}); showTab('ongoing');">Accept</button>
+                                    <button class="decline-button" onclick="declineRequest(${request.id})">Decline</button>
+                                </div>`;
                             requestsTab.appendChild(requestElement);
                         });
                     })
@@ -475,24 +478,55 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         function acceptRequest(requestId) {
-            if (confirm('Are you sure you want to accept this request?')) {
-                fetch('accept_request.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `request_id=${requestId}`
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Request accepted successfully!');
-                            location.reload(); // Reload the page to update the tabs
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
+    if (confirm('Are you sure you want to accept this request?')) {
+        fetch('accept_request.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `request_id=${requestId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Request accepted successfully!');
+                showTab('ongoing'); // Switch to "Ongoing" tab
+                fetchOngoingRequests(); // Fetch ongoing requests dynamically
+            } else {
+                alert('Error: ' + data.error);
             }
-        }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+
+function fetchOngoingRequests() {
+    fetch('fetch_ongoing_requests.php')
+        .then(response => response.json())
+        .then(ongoingRequests => {
+            const ongoingTab = document.getElementById('ongoing');
+            ongoingTab.innerHTML = ''; 
+
+            if (ongoingRequests.length === 0) {
+                ongoingTab.innerHTML = '<p>No ongoing requests found.</p>';
+                return;
+            }
+
+            ongoingRequests.forEach(request => {
+                const requestElement = document.createElement('div');
+                requestElement.className = 'request';
+                requestElement.innerHTML = `
+                    <h3>Ongoing with ${request.other_name}</h3>
+                    <p>Matching skills in progress...</p>
+                    <button class="chat-button" onclick="proceedToChat(${request.id})">Chat</button>
+                `;
+                ongoingTab.appendChild(requestElement);
+            });
+        })
+        .catch(error => console.error('Error fetching ongoing requests:', error));
+}
+
+
+
 
         function loadRequests() {
             fetch('fetch_requests.php')

@@ -41,6 +41,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'login') {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
+    // First check if it's an admin
+    $stmt = $conn->prepare("SELECT * FROM admins WHERE Email = :email AND Is_Active = 1");
+    $stmt->bindParam(':email', $email);
+    $stmt->execute();
+    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($admin && $password === $admin['Password']) {
+        // Update last login time
+        $updateStmt = $conn->prepare("UPDATE admins SET Last_Login = CURRENT_TIMESTAMP WHERE Admin_ID = :admin_id");
+        $updateStmt->execute([':admin_id' => $admin['Admin_ID']]);
+
+        // Set admin session
+        $_SESSION['admin_id'] = $admin['Admin_ID'];
+        $_SESSION['admin_email'] = $admin['Email'];
+        $_SESSION['admin_role'] = $admin['Role'];
+        $_SESSION['admin_name'] = $admin['First_Name'] . ' ' . $admin['Last_Name'];
+
+        header("Location: admin.php");
+        exit();
+    }
+
+    // If not admin, check if it's a regular user
     $stmt = $conn->prepare("SELECT * FROM users WHERE Email = :email");
     $stmt->bindParam(':email', $email);
     $stmt->execute();
@@ -112,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
 }
 ?>
 
-<?php include 'menu.php'; ?>
+<?php include 'menu2.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
