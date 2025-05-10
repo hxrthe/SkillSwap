@@ -1,12 +1,377 @@
-<?php include 'menuu.php'; ?>
+<?php
+session_start();
+require_once 'SkillSwapDatabase.php';
+
+// Get current user's ID
+$currentUserId = $_SESSION['user_id'];
+
+// Get users that haven't been matched with current user
+$db = new Database();
+$conn = $db->getConnection();
+
+// Get all users except current user
+try {
+    // First try to create the user_skills table if it doesn't exist
+    $conn->exec("CREATE TABLE IF NOT EXISTS user_skills (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT NOT NULL,
+        skill_name VARCHAR(255) NOT NULL,
+        skill_type VARCHAR(20) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(User_ID)
+    )");
+
+    // Get all users except current user
+    $stmt = $conn->prepare("
+        SELECT u.*, 
+               (SELECT GROUP_CONCAT(skill_name) 
+                FROM user_skills 
+                WHERE user_id = u.User_ID AND skill_type = 'can_share') as can_share_skills,
+               (SELECT GROUP_CONCAT(skill_name) 
+                FROM user_skills 
+                WHERE user_id = u.User_ID AND skill_type = 'want_to_learn') as want_to_learn_skills
+        FROM users u
+        WHERE u.User_ID != :current_user_id
+        AND u.User_ID NOT IN (
+            SELECT DISTINCT CASE 
+                WHEN sender_id = :current_user_id THEN request_id 
+                ELSE sender_id 
+            END as matched_user
+            FROM messages 
+            WHERE sender_id = :current_user_id OR request_id = :current_user_id
+        )
+        ORDER BY u.User_ID DESC
+    ");
+    $stmt->execute([':current_user_id' => $currentUserId]);
+    $unmatchedUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Debug: Log the number of users found
+    error_log("Found " . count($unmatchedUsers) . " unmatched users");
+
+    // Debug: Log the first user's data if any found
+    if (!empty($unmatchedUsers)) {
+        error_log("First user data: " . print_r($unmatchedUsers[0], true));
+    }
+
+} catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
+    // If there's any error, show empty skills
+    $stmt = $conn->prepare("
+        SELECT u.*, 
+               '' as can_share_skills,
+               '' as want_to_learn_skills
+        FROM users u
+        WHERE u.User_ID != :current_user_id
+        AND u.User_ID NOT IN (
+            SELECT DISTINCT CASE 
+                WHEN sender_id = :current_user_id THEN request_id 
+                ELSE sender_id 
+            END as matched_user
+            FROM messages 
+            WHERE sender_id = :current_user_id OR request_id = :current_user_id
+        )
+        ORDER BY u.User_ID DESC
+    ");
+    $stmt->execute([':current_user_id' => $currentUserId]);
+    $unmatchedUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+$stmt = $conn->prepare("SELECT GROUP_CONCAT(skill_name) as current_skills FROM user_skills WHERE user_id = :user_id");
+$stmt->execute([':user_id' => $currentUserId]);
+$currentSkills = $stmt->fetch(PDO::FETCH_ASSOC)['current_skills'];
+
+include 'menuu.php';
+
+?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="<?php echo isset($_SESSION['theme']) ? $_SESSION['theme'] : 'light'; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search</title>
+    <title>Find Matches</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --card-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --primary-color: #4CAF50;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --card-bg: #2d2d2d;
+            --border-color: #444444;
+            --primary-color: #66BB6A;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .search-bar-container {
+            display: flex;
+            align-items: center;
+            background-color: var(--card-bg);
+            border-radius: 30px;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 8px;
+            border-radius: 25px;
+        }
+
+        .toggle-buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .toggle-buttons button {
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-buttons button.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .card-container {
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .card {
+            position: absolute;
+            width: 100%;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .profile-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+        .profile-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .info {
+            flex: 1;
+        }
+
+        .info h3 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--primary-color);
+        }
+
+        .info p {
+            margin: 5px 0;
+            color: var(--text-color);
+        }
+
+        .skills {
+            margin-top: 15px;
+        }
+
+        .skill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .skill-tag {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+
+        .accept-button, .decline-button {
+            position: absolute;
+            bottom: -40px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .accept-button {
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .decline-button {
+            left: 20px;
+            background-color: #f44336;
+            color: white;
+        }
+
+        .accept-button:hover, .decline-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .match-request {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .match-request:last-child {
+            border-bottom: none;
+        }
+
+        .match-request img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .match-request .info {
+            flex: 1;
+        }
+
+        .match-request .info h4 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .match-request .info p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        .match-request .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .match-request button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .match-request button:hover {
+            background-color: #45a049;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .search-bar-container {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 15px;
+            }
+
+            .search-bar {
+                margin-bottom: 10px;
+            }
+
+            .toggle-buttons {
+                margin-bottom: 15px;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .card-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .profile-image {
+                width: 80px;
+                height: 80px;
+            }
+
+            .info h3 {
+                font-size: 20px;
+            }
+
+            .skill-list {
+                justify-content: center;
+            }
+        }
         body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
@@ -27,11 +392,6 @@
             padding: 10px 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
-            width: 30%;
-            margin: 20px auto;
-        }
-
-        .search-bar-container ion-icon {
             font-size: 24px;
             color: #666;
             margin-right: 10px;
@@ -144,22 +504,37 @@
             font-weight: bold;
         }
 
-        .card .nope,
-        .card .match {
-            position: absolute;
-            top: 20px;
-            font-size: 18px;
-            font-weight: bold;
+        .card .action-icons {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px; /* Increased padding from 20px to 40px */
+            margin-top: 30px; /* Increased margin from 20px to 30px */
+            gap: 30px; /* Increased gap from 20px to 30px */
         }
 
-        .card .nope {
-            left: 20px;
-            color: red;
+        .card .action-icons .icon {
+            font-size: 32px; /* Increased font size from 24px to 32px */
+            cursor: pointer;
+            transition: transform 0.3s ease;
         }
 
-        .card .match {
-            right: 20px;
-            color: green;
+        .card .action-icons .heart {
+            color: #ff4444;
+            margin-right: 60px;
+        }
+
+        .card .action-icons .heart:hover {
+            transform: scale(1.2);
+        }
+
+        .card .action-icons .x {
+            color: #444;
+        }
+
+        .card .action-icons .x:hover {
+            transform: scale(1.2);
         }
 
         .card:nth-child(1) {
@@ -314,98 +689,180 @@
     </div>
 
     <script>
-        let lastMessageId = 0; // Track the last message ID to avoid reloading all messages
+        // Pass PHP data to JavaScript
+        const usersData = <?php echo json_encode($unmatchedUsers); ?>;
+        const currentUserId = <?php echo json_encode($currentUserId); ?>;
 
-        function fetchUsers() {
-            fetch('fetch_users_for_search.php') // Use the PHP file to fetch users
-                .then(response => response.json())
-                .then(users => {
-                    console.log('Fetched users:', users); // Debugging: Log the fetched users
-
-                    if (users.error) {
-                        console.error(users.error);
-                        return;
-                    }
-
-                    const cardContainer = document.getElementById('card-container');
-                    cardContainer.innerHTML = ''; // Clear existing cards
-
-                    if (users.length === 0) {
-                        cardContainer.innerHTML = '<p>No users found.</p>'; // Handle empty results
-                        return;
-                    }
-
-                    users.forEach(user => {
-                        const card = document.createElement('div');
-                        card.className = 'card';
-
-                        card.innerHTML = `
-                            <img src="default-profile.png" alt="User Picture"> <!-- Replace with actual user profile picture if available -->
-                            <div class="info">
-                                <h3>${user.First_Name}</h3>
-                                <p>${user.Skill}</p>
-                                <div class="nope" onclick="handleNope(${user.User_ID})"><- Nope</div>
-                                <div class="match" onclick="handleMatch(${user.User_ID})">Match -></div>
-                                <div class="offer">
-                                    <div>${user.Offer}</div>
-                                    <div>${user.Exchange}</div>
-                                </div>
-                            </div>
-                        `;
-
-                        cardContainer.appendChild(card);
-                    });
-
-                    // Reinitialize swipe functionality
-                    initializeSwipe();
-                })
-                .catch(error => console.error('Error fetching users:', error));
-        }
-
+        // Initialize swipe functionality
         function initializeSwipe() {
             const cards = document.querySelectorAll('.card');
-
+            
             if (cards.length === 0) {
-                console.log('No cards to initialize swipe functionality.'); // Debugging
+                console.log('No cards to initialize swipe functionality.');
                 return;
             }
 
-            // Attach swipe functionality to the "Nope" and "Match" buttons
+            // Add swipe functionality
             cards.forEach((card, index) => {
-                const nopeButton = card.querySelector('.nope');
-                const matchButton = card.querySelector('.match');
+                let startX;
+                let moveX;
+                let currentX;
 
-                if (nopeButton) {
-                    nopeButton.onclick = () => swipeCard('left', index);
-                }
+                card.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                });
 
-                if (matchButton) {
-                    matchButton.onclick = () => swipeCard('right', index);
-                }
+                card.addEventListener('touchmove', (e) => {
+                    moveX = e.touches[0].clientX;
+                    currentX = moveX - startX;
+                    card.style.transform = `translateX(${currentX}px)`;
+                });
+
+                card.addEventListener('touchend', () => {
+                    if (Math.abs(currentX) > 100) {
+                        if (currentX > 0) {
+                            swipeCard('right', index);
+                        } else {
+                            swipeCard('left', index);
+                        }
+                    } else {
+                        card.style.transform = 'translateX(0)';
+                    }
+                });
+            });
+        }
+
+        const currentSkills = <?php echo json_encode($currentSkills); ?>;
+
+        // Display users when the page loads
+        window.onload = function() {
+            displayUsers(usersData);
+            initializeSwipe();
+            
+            // Debug: Log the number of users found
+            console.log('Number of users found:', usersData.length);
+            console.log('First user data:', usersData[0]);
+        };
+
+        function displayUsers(users) {
+            const cardsContainer = document.querySelector('.card-container');
+            cardsContainer.innerHTML = '';
+
+            if (users.length === 0) {
+                cardsContainer.innerHTML = '<p>No users found to match with.</p>';
+                return;
+            }
+
+            users.forEach((user, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.userId = user.User_ID; // Store user ID in card data
+                card.innerHTML = `
+                    <div class="card-content">
+                        <div class="user-info">
+                            <div class="profile-image">
+                                <img src="${user.Profile_Picture || 'default-profile.png'}" alt="${user.First_Name} ${user.Last_Name}">
+                            </div>
+                            <div class="info">
+                                <h3>${user.First_Name} ${user.Last_Name}</h3>
+                                <p>${user.Bio || 'No bio added yet'}</p>
+                                <div class="skills">
+                                    <h4>Skills I Can Share:</h4>
+                                    <div class="skill-list">
+                                        ${user.can_share_skills ? user.can_share_skills.split(',').map(skill => `
+                                            <span class="skill-tag">${skill.trim()}</span>
+                                        `).join('') : '<span class="skill-tag">No skills shared yet</span>'}
+                                    </div>
+                                    <h4>Skills I Want to Learn:</h4>
+                                    <div class="skill-list">
+                                        ${user.want_to_learn_skills ? user.want_to_learn_skills.split(',').map(skill => `
+                                            <span class="skill-tag">${skill.trim()}</span>
+                                        `).join('') : '<span class="skill-tag">No skills to learn yet</span>'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-icons">
+                            <i class="bx bx-x x" onclick="swipeCard('left', ${index})"></i>
+                            <i class="bx bx-heart heart" onclick="swipeCard('right', ${index})"></i>
+                        </div>
+                    </div>
+                `;
+                cardsContainer.appendChild(card);
             });
         }
 
         function swipeCard(direction, cardIndex) {
             const cards = document.querySelectorAll('.card');
-            const currentCard = cards[cardIndex]; // Target the specific card
+            const currentCard = cards[cardIndex];
             if (!currentCard) return;
 
+            // Get the user ID from the card data
+            const userId = currentCard.dataset.userId; // Get user ID from card data
+            console.log('Sending match request to user ID:', userId); // Debug log
+            
             // Apply swipe animation
             if (direction === 'right') {
                 currentCard.style.transform = 'translateX(100%)';
+                // Send match request
+                sendMatchRequest(userId);
             } else if (direction === 'left') {
                 currentCard.style.transform = 'translateX(-100%)';
             }
 
+            // Apply swipe animation
+            currentCard.style.transform = direction === 'right' ? 'translateX(100%)' : 'translateX(-100%)';
             currentCard.style.opacity = '0';
 
-            // Remove the swiped card from the DOM after the animation
+            // Remove card after animation
             setTimeout(() => {
-                currentCard.remove();
+                if (direction === 'right') {
+                    // Only remove after successful match request
+                    sendMatchRequest(userId).then(() => {
+                        currentCard.remove();
+                        initializeSwipe();
+                    }).catch(() => {
+                        // If request fails, keep the card visible
+                        currentCard.style.transform = 'translateX(0)';
+                        currentCard.style.opacity = '1';
+                    });
+                } else {
+                    // For left swipe, remove immediately
+                    currentCard.remove();
+                    initializeSwipe();
+                }
+            }, 500);
+        }
 
-                // Reinitialize swipe functionality for the remaining cards
-                initializeSwipe();
-            }, 500); // Match the animation duration
+        function sendMatchRequest(receiverId) {
+            return new Promise((resolve, reject) => {
+                const message = prompt("Enter a message for the match (optional): ");
+
+                if (confirm("Are you sure you want to send this match request?")) {
+                    fetch('match_user.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `sender_id=${currentUserId}&receiver_id=${receiverId}&message=${encodeURIComponent(message || '')}`
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Match request sent successfully!');
+                                resolve();
+                            } else {
+                                alert('Failed to send match request: ' + (data.error || 'Unknown error'));
+                                reject(new Error(data.error || 'Failed to send match request'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error sending match request:', error);
+                            alert('An error occurred while sending the match request');
+                            reject(error);
+                        });
+                } else {
+                    reject(new Error('Match request cancelled'));
+                }
+            });
         }
 
         function handleMatch(receiverId) {

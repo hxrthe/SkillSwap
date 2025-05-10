@@ -81,11 +81,102 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
         .chat-messages {
             height: 300px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
+            padding: 20px;
             margin-bottom: 20px;
-            background-color: #fdfd96;
-            border-radius: 5px;
+            background-color: var(--chat-bg);
+        }
+
+        .message-container {
+            margin-bottom: 15px;
+            width: 100%;
+            clear: both;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            display: block;
+            word-wrap: break-word;
+            position: relative;
+            margin-bottom: 5px;
+        }
+
+        .message.received {
+            background-color: var(--received-bg);
+            float: left;
+            margin-left: 10px;
+        }
+
+        .message.sent {
+            background-color: var(--sent-bg);
+            float: right;
+            margin-right: 10px;
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-text {
+            margin-bottom: 5px;
+        }
+
+        .message-time {
+            font-size: 0.8em;
+            color: var(--text-muted);
+        }
+
+        .message.received .message-time {
+            align-self: flex-start;
+            margin-left: 5px;
+        }
+
+        .message.sent .message-time {
+            align-self: flex-end;
+            margin-right: 5px;
+        }
+
+        .message-container {
+            margin-bottom: 15px;
+            width: 100%;
+            clear: both;
+            margin: 0 auto;
+        }
+
+        .message.received {
+            background-color: var(--message-bg);
+            color: var(--message-text);
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.sent {
+            background-color: var(--message-sent-bg);
+            color: var(--message-text);
+            float: right;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .message-text {
+            margin: 0;
+            font-size: 14px;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: rgba(51, 51, 51, 0.6);
+            margin-top: 5px;
+            text-align: right;
+            padding-right: 5px;
         }
 
         .chat-input {
@@ -224,9 +315,26 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
                     chatMessages.innerHTML = ''; // Clear existing messages
 
                     messages.forEach(msg => {
-                        const messageElement = document.createElement('div');
-                        messageElement.textContent = `${msg.sender_name}: ${msg.message}`;
-                        chatMessages.appendChild(messageElement);
+                        const messageContainer = document.createElement('div');
+                        messageContainer.className = 'message-container';
+                        messageContainer.style.clear = 'both'; // Clear floats
+
+                        const messageBubble = document.createElement('div');
+                        messageBubble.className = `message ${msg.sender_id == <?php echo $_SESSION['user_id']; ?> ? 'sent' : 'received'}`;
+                        
+                        // Format the date using JavaScript's Date object
+                        const formattedTime = new Date(msg.timestamp * 1000).toLocaleString();
+
+                        messageBubble.innerHTML = `
+                            <div class="message-content">
+                                <div class="message-text">${msg.message}</div>
+                                
+                                <div class="message-time">${formattedTime}</div>
+                            </div>
+                        `;
+
+                        messageContainer.appendChild(messageBubble);
+                        chatMessages.appendChild(messageContainer);
                     });
 
                     // Scroll to the bottom of the chat

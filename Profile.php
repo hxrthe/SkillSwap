@@ -19,17 +19,33 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="<?php echo isset($_SESSION['theme']) ? $_SESSION['theme'] : 'light'; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - SkillSwap</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --card-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --primary-color: #4CAF50;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --card-bg: #2d2d2d;
+            --border-color: #444444;
+            --primary-color: #66BB6A;
+        }
+
         body {
-            background-color: #f5f5f5;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 0;
             min-height: 100vh;
@@ -90,24 +106,80 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             display: flex;
             gap: 40px;
             flex-wrap: wrap;
+            margin-top: 20px;
         }
 
         .stat-item {
             text-align: center;
             min-width: 100px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .stat-value {
             font-size: 28px;
+            color: #2c3e50;
             font-weight: bold;
-            color: #ffeb3b;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 5px;
         }
 
         .stat-label {
-            color: #666;
+            color: #7f8c8d;
             font-size: 14px;
-            margin-top: 5px;
+        }
+
+        .connections-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .connections-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .connections-count {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .connection-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .connection-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .connection-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #e1f5fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .connection-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .connection-skill {
+            color: #7f8c8d;
+            font-size: 14px;
         }
 
         .profile-sections {
@@ -220,6 +292,24 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
     <?php include 'Menu2.php'; ?>
 
     <div class="profile-container">
+        <?php
+        // Get ongoing chats
+        $stmt = $conn->prepare("SELECT COUNT(DISTINCT CASE WHEN sender_id = :user_id THEN request_id ELSE sender_id END) as chat_count 
+                              FROM messages 
+                              WHERE (sender_id = :user_id OR request_id = :user_id)");
+        $stmt->execute([':user_id' => $_SESSION['user_id']]);
+        $chatCount = $stmt->fetch(PDO::FETCH_ASSOC)['chat_count'];
+
+        // Get connections based on ongoing chats
+        $stmt = $conn->prepare("SELECT DISTINCT u.* 
+                              FROM users u
+                              JOIN messages m ON 
+                                  (u.User_ID = m.sender_id AND m.request_id = :user_id) OR 
+                                  (u.User_ID = m.request_id AND m.sender_id = :user_id)
+                              AND u.User_ID != :user_id");
+        $stmt->execute([':user_id' => $_SESSION['user_id']]);
+        $connections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        ?>
         <div class="profile-header">
             <div class="profile-avatar">
                 <i class='bx bxs-user'></i>
@@ -229,16 +319,21 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 <div class="profile-email"><?php echo htmlspecialchars($user['Email']); ?></div>
                 <div class="profile-stats">
                     <div class="stat-item">
-                        <div class="stat-value">0</div>
-                        <div class="stat-label">Skills Shared</div>
+                    </div>
+                        <!-- <div class="stat-value"><?php echo $user['Skills']; ?></div>
+                        <div class="stat-label">Skills</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">0</div>
-                        <div class="stat-label">Skills Learned</div>
+                        <div class="stat-value"><?php echo $user['Experience']; ?></div>
+                        <div class="stat-label">Experience</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">0</div>
-                        <div class="stat-label">Connections</div>
+                        <div class="stat-value"><?php echo $user['Education']; ?></div>
+                        <div class="stat-label">Education</div>
+                    </div> -->
+                    <div class="stat-item">
+                        <div class="stat-value"><?php echo $chatCount; ?></div>
+                        <div class="stat-label">Matches</div>
                     </div>
                 </div>
             </div>
@@ -258,42 +353,468 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             <div class="profile-section">
                 <div class="section-title">Skills I Can Share</div>
                 <div class="skills-container">
-                    <div class="skill-tag">Add your skills</div>
+                    <div class="skill-tag" onclick="openSkillsModal()">Add your skills</div>
                 </div>
-            </div>
-
-            <div class="profile-section">
                 <div class="section-title">Skills I Want to Learn</div>
-                <div class="skills-container">
-                    <div class="skill-tag">Add skills you want to learn</div>
+                <div class="skills-container" id="skills-container">
+                    <div class="skill-tag" onclick="openSkillsModal()">Add skills you want to learn</div>
+                </div>
+
+                <!-- Skills Modal -->
+                <div id="skillsModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeSkillsModal()">&times;</span>
+                        <h2>Select Up to 3 Skills</h2>
+                        <div class="skills-list">
+                            <?php
+                            // Get predefined skills
+                            $stmt = $conn->prepare("SELECT * FROM predefined_skills ORDER BY category, skill_name");
+                            $stmt->execute();
+                            $skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                            // Get user's current skills (temporarily removed until table is created)
+                            $userSkills = []; // Empty array for now
+
+                            // Group skills by category
+                            $skillsByCategory = [];
+                            foreach ($skills as $skill) {
+                                $skillsByCategory[$skill['category']][] = $skill;
+                            }
+
+                            foreach ($skillsByCategory as $category => $categorySkills):
+                            ?>
+                            <div class="skill-category">
+                                <h3><?php echo htmlspecialchars($category); ?></h3>
+                                <div class="skill-items">
+                                    <?php foreach ($categorySkills as $skill): ?>
+                                    <div class="skill-item">
+                                        <input type="checkbox" 
+                                               id="skill_<?php echo htmlspecialchars($skill['id']); ?>"
+                                               value="<?php echo htmlspecialchars($skill['skill_name']); ?>"
+                                               <?php echo in_array($skill['skill_name'], $userSkills) ? 'checked' : ''; ?>>
+                                        <label for="skill_<?php echo htmlspecialchars($skill['id']); ?>"><?php echo htmlspecialchars($skill['skill_name']); ?></label>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="modal-buttons">
+                            <button onclick="saveSkills()">Save</button>
+                            <button onclick="closeSkillsModal()">Cancel</button>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div class="profile-section">
-                <div class="section-title">Recent Activity</div>
-                <div class="activity-list">
-                    No recent activity
-                </div>
+        <div class="recent-activity">
+            <h2>Recent Activity</h2>
+            <div class="activity-list">
+                <?php
+                // Get user's posts with community information
+                $stmt = $conn->prepare("SELECT p.*, c.name as community_name 
+                                    FROM posts p 
+                                    JOIN communities c ON p.community_id = c.id 
+                                    WHERE p.user_id = :user_id 
+                                    ORDER BY p.created_at DESC 
+                                    LIMIT 5");
+                $stmt->execute([':user_id' => $_SESSION['user_id']]);
+                $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (empty($posts)) {
+                    echo '<div class="no-activity">No recent activity yet</div>';
+                } else {
+                    foreach ($posts as $post) {
+                        echo '<div class="activity-item">';
+                        echo '<div class="activity-content">' . htmlspecialchars($post['content']) . '</div>';
+                        echo '<div class="activity-meta">';
+                        echo '<span class="community">Community: ' . htmlspecialchars($post['community_name']) . '</span>';
+                        echo '<span class="timestamp">' . date('M d, Y', strtotime($post['created_at'])) . '</span>';
+                        echo '</div>';
+                        echo '</div>';
+                    }
+                }
+                ?>
             </div>
         </div>
     </div>
 
+    <style>
+        .recent-activity {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .recent-activity h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .activity-content {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .activity-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #777;
+        }
+
+        .community {
+            font-weight: 500;
+        }
+
+        .timestamp {
+            opacity: 0.8;
+        }
+
+        .no-activity {
+            text-align: center;
+            color: #777;
+            padding: 20px;
+        }
+
+        .activity-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .activity-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .activity-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .activity-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+
+    <style>
+        .recent-activity {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .recent-activity h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .activity-content {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .activity-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #777;
+        }
+
+        .community {
+            font-weight: 500;
+        }
+
+        .timestamp {
+            opacity: 0.8;
+        }
+
+        .no-activity {
+            text-align: center;
+            color: #777;
+            padding: 20px;
+        }
+
+        .activity-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .activity-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .activity-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .activity-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Skills Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: black;
+        }
+
+        .skill-category {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .skill-category h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .skill-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+
+        .skill-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skill-item label {
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .modal-buttons button:first-child {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .modal-buttons button:last-child {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .skill-tag {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .selected-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .selected-skill {
+            background-color: #e3f2fd;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            color: #1976d2;
+            white-space: nowrap;
+        }
+
+        .skill-tag:hover {
+            opacity: 0.8;
+        }
+    </style>
+
     <script>
+        let currentSkillType = 'can_share';
+        let currentSkills = [];
+
+        function openSkillsModal() {
+            const modal = document.getElementById('skillsModal');
+            modal.style.display = 'block';
+            
+            // Determine which section was clicked
+            const target = event.target;
+            if (target.closest('.skills-container').id === 'skills-container') {
+                currentSkillType = 'want_to_learn';
+            } else {
+                currentSkillType = 'can_share';
+            }
+            
+            // Update modal title based on skill type
+            document.querySelector('.modal-content h2').textContent = 
+                currentSkillType === 'can_share' ? 'Select Up to 3 Skills You Can Share' : 'Select Up to 3 Skills You Want to Learn';
+        }
+
+        function closeSkillsModal() {
+            document.getElementById('skillsModal').style.display = 'none';
+        }
+
+        function saveSkills() {
+            const selectedSkills = Array.from(document.querySelectorAll('.skill-item input:checked'))
+                .map(checkbox => checkbox.value);
+                
+            if (selectedSkills.length > 3) {
+                alert('You can only select up to 3 skills');
+                return;
+            }
+
+            // Send the skills to the server
+            fetch('save_skills.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: <?php echo $_SESSION['user_id']; ?>,
+                    skills: selectedSkills,
+                    skill_type: currentSkillType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the UI
+                    const container = currentSkillType === 'can_share' ? 
+                        document.querySelector('.skills-container:not([id="skills-container"])') :
+                        document.querySelector('#skills-container');
+                        
+                    // Change text to "Edit"
+                    const skillTag = container.querySelector('.skill-tag');
+                    skillTag.textContent = currentSkillType === 'can_share' ? 
+                        'Edit your skills' : 'Edit skills you want to learn';
+                        
+                    // Display selected skills
+                    const skillsList = document.createElement('div');
+                    skillsList.className = 'selected-skills';
+                    selectedSkills.forEach(skill => {
+                        const skillItem = document.createElement('div');
+                        skillItem.className = 'selected-skill';
+                        skillItem.textContent = skill;
+                        skillsList.appendChild(skillItem);
+                    });
+                    
+                    // Replace the container content
+                    container.innerHTML = '';
+                    container.appendChild(skillTag);
+                    container.appendChild(skillsList);
+                    
+                    // Close the modal
+                    closeSkillsModal();
+                } else {
+                    alert('Error saving skills: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving skills');
+            });
+        }
+
+        // Add event listeners to skill checkboxes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.skill-item input').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const selectedCount = document.querySelectorAll('.skill-item input:checked').length;
+                    if (selectedCount > 3) {
+                        this.checked = false;
+                        alert('You can only select up to 3 skills');
+                    }
+                });
+            });
+        });
+
+        // Edit Profile Function
         function editProfile() {
             Swal.fire({
                 title: 'Edit Profile',
                 html: `
-                    <div class="input-group">
+                    <div class="form-group">
                         <label>Bio</label>
-                        <textarea class="swal2-textarea" placeholder="Tell us about yourself"></textarea>
+                        <textarea id="bio" rows="4" placeholder="Tell us about yourself"></textarea>
                     </div>
-                    <div class="input-group">
+                    <div class="form-group">
                         <label>Skills I Can Share</label>
-                        <input type="text" class="swal2-input" placeholder="Add skills (comma separated)">
+                        <input type="text" id="can-share-skills" placeholder="Add skills (comma separated)">
                     </div>
-                    <div class="input-group">
+                    <div class="form-group">
                         <label>Skills I Want to Learn</label>
-                        <input type="text" class="swal2-input" placeholder="Add skills (comma separated)">
+                        <input type="text" id="want-to-learn-skills" placeholder="Add skills (comma separated)">
                     </div>
                 `,
                 showCancelButton: true,
@@ -302,6 +823,10 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 cancelButtonText: 'Cancel',
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
+                    const bio = document.getElementById('bio').value;
+                    const canShareSkills = document.getElementById('can-share-skills').value;
+                    const wantToLearnSkills = document.getElementById('want-to-learn-skills').value;
+
                     // Add your save logic here
                     return new Promise((resolve) => {
                         setTimeout(() => {
