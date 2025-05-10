@@ -53,6 +53,163 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
+        /* Navigation Styles */
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: var(--bg-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 0.8rem 1.5rem;
+        }
+
+        .nav-container nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .nav-container .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-container .logo img {
+            height: 2rem;
+            width: auto;
+        }
+
+        .nav-container .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .nav-container .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+
+        .nav-container .nav-links a:hover {
+            color: var(--primary-color);
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+
+        .nav-container .mobile-menu {
+            display: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1200px) {
+            .nav-container {
+                padding: 0.8rem 1rem;
+            }
+
+            .nav-container .nav-links {
+                gap: 2rem;
+            }
+
+            .nav-container .logo {
+                font-size: 1.6rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .nav-container {
+                padding: 0.7rem 0.8rem;
+            }
+
+            .nav-container .nav-links {
+                gap: 1.5rem;
+            }
+
+            .nav-container .logo {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 0.6rem 0.7rem;
+            }
+
+            .nav-container nav {
+                padding: 0.6rem 0.7rem;
+            }
+
+            .nav-container .nav-links {
+                display: none;
+            }
+
+            .nav-container .mobile-menu {
+                display: block;
+            }
+
+            .nav-container .logo {
+                font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .nav-container {
+                padding: 0.5rem 0.6rem;
+            }
+
+            .nav-container .logo {
+                font-size: 1.3rem;
+            }
+
+            .nav-container .mobile-menu {
+                font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-container {
+                padding: 0.4rem 0.5rem;
+            }
+
+            .nav-container .logo {
+                font-size: 1.2rem;
+            }
+
+            .nav-container .mobile-menu {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Modal Overlay */
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        #overlay.active {
+            display: block;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;

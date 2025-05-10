@@ -353,11 +353,10 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             <div class="profile-section">
                 <div class="section-title">Skills I Can Share</div>
                 <div class="skills-container">
-                    <div class="skill-tag" onclick="openSkillsModal()">Add your skills</div>
+                    <div class="skill-tag" onclick="openSkillsModal(event)">Add your skills</div>
                 </div>
-                <div class="section-title">Skills I Want to Learn</div>
                 <div class="skills-container" id="skills-container">
-                    <div class="skill-tag" onclick="openSkillsModal()">Add skills you want to learn</div>
+                    <div class="skill-tag" onclick="openSkillsModal(event)">Add skills you want to learn</div>
                 </div>
 
                 <!-- Skills Modal -->
@@ -367,7 +366,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                         <h2>Select Up to 3 Skills</h2>
                         <div class="skills-list">
                             <?php
-                            // Get predefined skills
+                            // Get predefined skills using direct SQL query
                             $stmt = $conn->prepare("SELECT * FROM predefined_skills ORDER BY category, skill_name");
                             $stmt->execute();
                             $skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -400,8 +399,8 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                             <?php endforeach; ?>
                         </div>
                         <div class="modal-buttons">
-                            <button onclick="saveSkills()">Save</button>
-                            <button onclick="closeSkillsModal()">Cancel</button>
+                            <button onclick="saveSkills()" class="save-btn">Save</button>
+                            <button onclick="closeSkillsModal()" class="cancel-btn">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -698,19 +697,194 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         .skill-tag:hover {
             opacity: 0.8;
         }
+        .activity-list {
+                max-height: 400px;
+                overflow-y: auto;
+            }
+
+            .activity-item {
+                padding: 15px;
+                border-bottom: 1px solid #eee;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .activity-content {
+                font-size: 0.9em;
+                color: #555;
+            }
+
+            .activity-meta {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.8em;
+                color: #777;
+            }
+
+            .community {
+                font-weight: 500;
+            }
+
+            .timestamp {
+                opacity: 0.8;
+            }
+
+            .no-activity {
+                text-align: center;
+                color: #777;
+                padding: 20px;
+            }
+
+            .activity-list::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .activity-list::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+
+            .activity-list::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 4px;
+            }
+
+            .activity-list::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+
+            /* Skills Modal Styles */
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+            }
+
+            .modal-content {
+                background-color: #fefefe;
+                margin: 10% auto;
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+                max-width: 600px;
+                border-radius: 10px;
+                position: relative;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+
+            .close {
+                color: #aaa;
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+
+            .close:hover {
+                color: black;
+            }
+
+            .skill-category {
+                margin-bottom: 15px;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 10px;
+            }
+
+            .skill-category h3 {
+                margin: 0 0 10px 0;
+                color: #333;
+                font-size: 1.1em;
+            }
+
+            .skill-items {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                gap: 8px;
+            }
+
+            .skill-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .skill-item label {
+                cursor: pointer;
+                font-size: 0.9em;
+            }
+
+            .modal-buttons {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                margin-top: 20px;
+            }
+
+            .modal-buttons button {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 0.9em;
+            }
+
+            .modal-buttons button:first-child {
+                background-color: #4CAF50;
+                color: white;
+            }
+
+            .modal-buttons button:last-child {
+                background-color: #f44336;
+                color: white;
+            }
+
+            .skill-tag {
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .selected-skills {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 8px;
+            }
+
+            .selected-skill {
+                background-color: #e3f2fd;
+                padding: 6px 12px;
+                border-radius: 15px;
+                font-size: 0.9em;
+                color: #1976d2;
+                white-space: nowrap;
+            }
+
+            .skill-tag:hover {
+                opacity: 0.8;
+            }
+        
     </style>
 
     <script>
         let currentSkillType = 'can_share';
         let currentSkills = [];
 
-        function openSkillsModal() {
+        function openSkillsModal(event) {
+            event.preventDefault();
             const modal = document.getElementById('skillsModal');
             modal.style.display = 'block';
             
             // Determine which section was clicked
             const target = event.target;
-            if (target.closest('.skills-container').id === 'skills-container') {
+            const container = target.closest('.skills-container');
+            
+            if (container.id === 'skills-container') {
                 currentSkillType = 'want_to_learn';
             } else {
                 currentSkillType = 'can_share';
@@ -721,83 +895,38 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 currentSkillType === 'can_share' ? 'Select Up to 3 Skills You Can Share' : 'Select Up to 3 Skills You Want to Learn';
         }
 
-        function closeSkillsModal() {
-            document.getElementById('skillsModal').style.display = 'none';
-        }
-
         function saveSkills() {
-            const selectedSkills = Array.from(document.querySelectorAll('.skill-item input:checked'))
-                .map(checkbox => checkbox.value);
-                
-            if (selectedSkills.length > 3) {
-                alert('You can only select up to 3 skills');
-                return;
-            }
-
-            // Send the skills to the server
             fetch('save_skills.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    user_id: <?php echo $_SESSION['user_id']; ?>,
-                    skills: selectedSkills,
+                    skills: currentSkills,
                     skill_type: currentSkillType
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update the UI
-                    const container = currentSkillType === 'can_share' ? 
-                        document.querySelector('.skills-container:not([id="skills-container"])') :
-                        document.querySelector('#skills-container');
-                        
-                    // Change text to "Edit"
-                    const skillTag = container.querySelector('.skill-tag');
-                    skillTag.textContent = currentSkillType === 'can_share' ? 
-                        'Edit your skills' : 'Edit skills you want to learn';
-                        
-                    // Display selected skills
-                    const skillsList = document.createElement('div');
-                    skillsList.className = 'selected-skills';
-                    selectedSkills.forEach(skill => {
-                        const skillItem = document.createElement('div');
-                        skillItem.className = 'selected-skill';
-                        skillItem.textContent = skill;
-                        skillsList.appendChild(skillItem);
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Skills saved successfully!',
+                        icon: 'success'
                     });
-                    
-                    // Replace the container content
-                    container.innerHTML = '';
-                    container.appendChild(skillTag);
-                    container.appendChild(skillsList);
-                    
-                    // Close the modal
-                    closeSkillsModal();
                 } else {
-                    alert('Error saving skills: ' + data.message);
+                    alert('You can only select up to 3 skills');
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error saving skills');
             });
+            closeSkillsModal();
         }
 
-        // Add event listeners to skill checkboxes
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.skill-item input').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const selectedCount = document.querySelectorAll('.skill-item input:checked').length;
-                    if (selectedCount > 3) {
-                        this.checked = false;
-                        alert('You can only select up to 3 skills');
-                    }
-                });
-            });
-        });
+        function closeSkillsModal() {
+            const modal = document.getElementById('skillsModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
 
         // Edit Profile Function
         function editProfile() {
@@ -821,28 +950,44 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 confirmButtonText: 'Save Changes',
                 confirmButtonColor: '#ffeb3b',
                 cancelButtonText: 'Cancel',
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
+                cancelButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
                     const bio = document.getElementById('bio').value;
                     const canShareSkills = document.getElementById('can-share-skills').value;
                     const wantToLearnSkills = document.getElementById('want-to-learn-skills').value;
 
-                    // Add your save logic here
-                    return new Promise((resolve) => {
-                        setTimeout(() => {
-                            resolve();
-                        }, 1000);
-                    });
+                    // Save the changes
+                    saveProfileChanges(bio, canShareSkills, wantToLearnSkills);
                 }
-            }).then((result) => {
-                if (result.isConfirmed) {
+            });
+        }
+
+        function saveProfileChanges(bio, canShareSkills, wantToLearnSkills) {
+            // Add your save logic here
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
                     Swal.fire({
                         icon: 'success',
                         title: 'Profile Updated!',
-                        showConfirmButton: false,
-                        timer: 1500
+                        html: 'Your profile has been updated successfully.',
+                        showCancelButton: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#ffeb3b',
+                        cancelButtonColor: '#6c757d',
+                        allowOutsideClick: true,
+                        allowEscapeKey: true,
+                        allowEnterKey: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // User clicked OK
+                            // You can add any additional logic here if needed
+                        }
                     });
-                }
+                }, 1000);
             });
         }
     </script>

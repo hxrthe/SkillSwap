@@ -169,30 +169,49 @@ include 'menuu.php';
 
         .card-container {
             position: relative;
-            perspective: 1000px;
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            margin: 0 auto;
+            overflow: visible;
+            padding: 20px 0;
         }
 
         .card {
-            position: absolute;
-            width: 100%;
+            display: block;
+            visibility: visible;
             background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+            padding: 30px;
+            margin-bottom: 30px;
+            width: 100%;
+            min-height: 200px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
 
         .card-content {
             display: flex;
-            align-items: center;
-            gap: 20px;
+            align-items: flex-start;
+            gap: 30px;
+            width: 100%;
         }
 
         .profile-image {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             overflow: hidden;
+            flex-shrink: 0;
+            border: 3px solid var(--card-bg);
         }
 
         .profile-image img {
@@ -203,27 +222,36 @@ include 'menuu.php';
 
         .info {
             flex: 1;
+            min-width: 0;
         }
 
         .info h3 {
             margin: 0;
             font-size: 24px;
             color: var(--primary-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .info p {
             margin: 5px 0;
             color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .skills {
             margin-top: 15px;
+            width: 100%;
         }
 
         .skill-list {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
+            width: 100%;
         }
 
         .skill-tag {
@@ -232,30 +260,52 @@ include 'menuu.php';
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 14px;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .accept-button, .decline-button {
-            position: absolute;
-            bottom: -40px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 24px;
-            transition: all 0.3s ease;
+        @media (max-width: 768px) {
+            .card-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .profile-image {
+                width: 80px;
+                height: 80px;
+            }
+
+            .info h3 {
+                font-size: 20px;
+                text-align: center;
+            }
+
+            .skill-list {
+                justify-content: center;
+            }
+
+            .skill-tag {
+                font-size: 13px;
+                padding: 4px 8px;
+            }
         }
 
-        .accept-button {
-            right: 20px;
-            background-color: #4CAF50;
-            color: white;
-        }
+        @media (max-width: 480px) {
+            .card {
+                padding: 15px;
+            }
 
-        .decline-button {
-            left: 20px;
-            background-color: #f44336;
-            color: white;
+            .info h3 {
+                font-size: 18px;
+            }
+
+            .skill-tag {
+                font-size: 12px;
+                padding: 3px 6px;
+            }
         }
 
         .accept-button:hover, .decline-button:hover {
@@ -310,37 +360,358 @@ include 'menuu.php';
             color: var(--text-color);
         }
 
-        .match-request .actions {
-            display: flex;
-            gap: 10px;
-        }
+                .profile-image {
+                    width: 80px;
+                    height: 80px;
+                }
 
-        .match-request button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
+                .info h3 {
+                    font-size: 20px;
+                    text-align: center;
+                }
 
-        .match-request button:hover {
-            background-color: #45a049;
-        }
+                .skill-list {
+                    justify-content: center;
+                }
 
-        @media (max-width: 600px) {
-            .container {
-                padding: 10px;
+                .skill-tag {
+                    font-size: 13px;
+                    padding: 4px 8px;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .card {
+                    padding: 15px;
+                }
+
+                .info h3 {
+                    font-size: 18px;
+                }
+
+                .skill-tag {
+                    font-size: 12px;
+                    padding: 3px 6px;
+                }
+            }
+
+            .accept-button:hover, .decline-button:hover {
+                transform: scale(1.1);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+
+            .tab-content {
+                display: none;
+                background-color: var(--card-bg);
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .tab-content.active {
+                display: block;
+            }
+
+            .match-request {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 15px;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .match-request:last-child {
+                border-bottom: none;
+            }
+
+            .match-request img {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+            .match-request .info {
+                flex: 1;
+            }
+
+            .match-request .info h4 {
+                margin: 0;
+                font-size: 16px;
+                color: var(--text-color);
+            }
+
+            .match-request .info p {
+                margin: 5px 0 0;
+                font-size: 14px;
+                color: var(--text-color);
+            }
+
+            .match-request .actions {
+                display: flex;
+                gap: 10px;
+            }
+
+            .accept-button, .decline-button {
+                position: absolute;
+                bottom: -40px;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                border: none;
+                cursor: pointer;
+                font-size: 30px;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .accept-button {
+                right: 20px;
+                background-color: #4CAF50;
+                color: white;
+            }
+
+            .decline-button {
+                left: 20px;
+                background-color: #f44336;
+                color: white;
+            }
+
+            .accept-button:hover, .decline-button:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            }
+
+            @media (max-width: 768px) {
+                .accept-button, .decline-button {
+                    width: 50px;
+                    height: 50px;
+                    font-size: 24px;
+                    bottom: -30px;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .accept-button, .decline-button {
+                    width: 45px;
+                    height: 45px;
+                    font-size: 20px;
+                    bottom: -25px;
+                }
             }
 
             .search-bar-container {
-                flex-direction: column;
-                align-items: stretch;
-                padding: 15px;
+                display: flex;
+                align-items: center;
+                background-color: #fff;
+                border-radius: 30px;
+                padding: 10px 20px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+                font-size: 24px;
+                color: #666;
+                margin-right: 10px;
             }
 
+            .search-bar {
+                flex: 1;
+                border: none;
+                outline: none;
+                font-size: 16px;
+            }
+
+            .toggle-buttons {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+
+            .toggle-buttons button {
+                background-color: #fff;
+                border: 2px solid #ddd;
+                border-radius: 20px;
+                padding: 10px 20px;
+                font-size: 16px;
+                cursor: pointer;
+                margin: 0 10px;
+                transition: all 0.3s ease;
+            }
+
+            .toggle-buttons button.active {
+                background-color: #fdfd96;
+                border-color: #fdfd96;
+                color: #000;
+            }
+
+            .card-container {
+                position: relative;
+                width: 600px;
+                height: 550px;
+                margin: 0 auto;
+            }
+
+            .card {
+                display: block !important; /* Ensure the cards are displayed */
+                visibility: visible !important; /* Ensure the cards are visible */
+                background-color: #fff; /* Add a background color for visibility */
+                border: 1px solid #ddd; /* Add a border for visibility */
+                padding: 20px;
+                margin-bottom: 20px;
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                border-radius: 10px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                transition: transform 0.5s ease, opacity 0.5s ease;
+            }
+
+            .card img {
+                width: 100%;
+                height: 300px;
+                border-radius: 10px;
+                object-fit: cover;
+            }
+
+            .card .actions {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 10px;
+            }
+
+            .card .actions button {
+                background-color: #fdfd96;
+                border: none;
+                border-radius: 5px;
+                padding: 10px 20px;
+                cursor: pointer;
+                font-size: 14px;
+            }
+
+            .card .actions button:hover {
+                background-color: #fce76c;
+            }
+
+            .card .info {
+                margin-top: 10%;
+            }
+
+            .card .info h3 {
+                margin: 0;
+                font-size: 18px;
+            }
+
+            .card .info p {
+                margin: 5px 0;
+                font-size: 14px;
+                color: #666;
+            }
+
+            .card .info .offer {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 10%;
+            }
+
+            .card .info .offer div {
+                background-color: #fdfd96;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+
+            .card .action-icons {
+                position: relative;
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                padding: 0 40px; /* Increased padding from 20px to 40px */
+                margin-top: 30px; /* Increased margin from 20px to 30px */
+                gap: 30px; /* Increased gap from 20px to 30px */
+            }
+
+            .card .action-icons .icon {
+                font-size: 32px; /* Increased font size from 24px to 32px */
+                cursor: pointer;
+                transition: transform 0.3s ease;
+            }
+
+            .card .action-icons .heart {
+                color: #ff4444;
+                margin-right: 60px;
+            }
+
+            .card .action-icons .heart:hover {
+                transform: scale(1.2);
+            }
+
+            .card .action-icons .x {
+                color: #444;
+            }
+
+            .card .action-icons .x:hover {
+                transform: scale(1.2);
+            }
+
+            @media (max-width: 600px) {
+                .container {
+                    padding: 10px;
+                }
+
+                .search-bar-container {
+                    flex-direction: column;
+                    align-items: stretch;
+                    padding: 15px;
+                }
+
+                .search-bar {
+                    margin-bottom: 10px;
+                }
+
+                .toggle-buttons {
+                    margin-bottom: 15px;
+                }
+
+                .card {
+                    padding: 15px;
+                }
+
+                .card-content {
+                    flex-direction: column;
+                    align-items: center;
+                    text-align: center;
+                }
+
+                .profile-image {
+                    width: 80px;
+                    height: 80px;
+                }
+
+                .info h3 {
+                    font-size: 20px;
+                }
+
+                .skill-list {
+                    justify-content: center;
+                }
+            }
+            body {
+                font-family: 'Poppins', sans-serif;
+                margin: 0;
+                padding: 0;
+                background: linear-gradient(to right, #fdfd96, #fff);
+                box-sizing: border-box;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .search-bar-container {
+                display: flex;
             .search-bar {
                 margin-bottom: 10px;
             }
@@ -509,13 +880,13 @@ include 'menuu.php';
             width: 100%;
             display: flex;
             justify-content: space-between;
-            padding: 0 40px; /* Increased padding from 20px to 40px */
-            margin-top: 30px; /* Increased margin from 20px to 30px */
-            gap: 30px; /* Increased gap from 20px to 30px */
+            padding: 0 30px;
+            margin-top: 25px;
+            gap: 25px;
         }
 
         .card .action-icons .icon {
-            font-size: 32px; /* Increased font size from 24px to 32px */
+            font-size: 28px;
             cursor: pointer;
             transition: transform 0.3s ease;
         }

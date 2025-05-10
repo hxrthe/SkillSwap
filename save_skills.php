@@ -10,20 +10,20 @@ try {
     // Get POST data
     $data = json_decode(file_get_contents('php://input'), true);
     
-    if (!isset($data['user_id']) || !isset($data['skills']) || !isset($data['skill_type'])) {
+    if (!isset($data['user_id']) || !isset($data['can_share_json']) || !isset($data['want_to_learn_json'])) {
         throw new Exception('Invalid data');
     }
 
     $userId = $data['user_id'];
-    $skills = $data['skills'];
-    $skillType = $data['skill_type'];
+    $canShareJson = $data['can_share_json'];
+    $wantToLearnJson = $data['want_to_learn_json'];
 
     // Call stored procedure
-    $stmt = $conn->prepare("CALL SaveUserSkills(:user_id, :skill_type, :skills)");
+    $stmt = $conn->prepare("CALL SaveUserSkills(:user_id, :can_share_json, :want_to_learn_json)");
     $stmt->execute([
         ':user_id' => $userId,
-        ':skill_type' => $skillType,
-        ':skills' => json_encode($skills)
+        ':can_share_json' => $canShareJson,
+        ':want_to_learn_json' => $wantToLearnJson
     ]);
 
     // Commit transaction
