@@ -1,3 +1,5 @@
+<?php include 'menu.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,20 +8,22 @@
   <title>ABOUT US</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
 
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #0e0e0e;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #fdfd96, #fff);
       color: #f2f2f2;
     }
 
     h2 {
       font-size: 2.5rem;
-      background: linear-gradient(to right, #ffeb3b, #ffd54f);
+      font-family: 'Roboto Slab';
+      background: #000000;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 40px;
@@ -30,7 +34,7 @@
       border-radius: 12px;
       padding: 30px 30px;
       border: 2px solid transparent;
-      transition: 0.3s;
+      transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
       text-align: center;
       cursor: pointer;
       height: 100%;
@@ -38,7 +42,9 @@
 
     .service-card:hover {
       border-color: #ffd54f;
-      box-shadow: 0 0 10px rgba(255, 213, 79, 0.2);
+      box-shadow: 0 0 15px rgba(255, 213, 79, 0.5);
+      transform: scale(1.05); /* Slight scale effect */
+      background-color: #333; /* Slight darkening of the background */
     }
 
     .service-card i {
