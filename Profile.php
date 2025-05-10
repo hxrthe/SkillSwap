@@ -195,37 +195,94 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         function saveSkills() {
-            fetch('save_skills.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    skills: currentSkills,
-                    skill_type: currentSkillType
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Skills saved successfully!',
-                        icon: 'success'
-                    });
-                } else {
-                    alert('You can only select up to 3 skills');
-                }
-            });
-            closeSkillsModal();
-        }
+    const selectedSkills = Array.from(document.querySelectorAll('.skills-list input:checked')).map(input => input.value);
 
+    console.log('Selected Skills:', selectedSkills); // Debug selected skills
+    console.log('Skill Type:', currentSkillType); // Debug skill type
+
+    fetch('save_skills.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            skills: selectedSkills,
+            skill_type: currentSkillType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Response from backend:', data); // Debug backend response
+        if (data.success) {
+            Swal.fire({
+                title: 'Success!',
+                text: 'Skills saved successfully!',
+                icon: 'success'
+            });
+            loadSavedSkills(currentSkillType); // Reload saved skills
+        } else {
+            alert(data.error || 'An error occurred while saving skills');
+        }
+    })
+    .catch(error => console.error('Error saving skills:', error));
+
+    closeSkillsModal();
+}
         function closeSkillsModal() {
             const modal = document.getElementById('skillsModal');
             if (modal) {
                 modal.style.display = 'none';
             }
         }
+
+        function loadSavedSkills(skillType) {
+            fetch(`fetch_skills.php?skill_type=${skillType}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById(skillType === 'can_share' ? 'skills-can-share' : 'skills-want-to-learn');
+                    container.innerHTML = ''; // Clear existing skills
+
+                    if (data.success && data.skills.length > 0) {
+                        data.skills.forEach(skill => {
+                            const skillTag = document.createElement('div');
+                            skillTag.className = 'skill-tag';
+                            skillTag.textContent = skill.skill_name;
+                            container.appendChild(skillTag);
+                        });
+                    } else {
+                        container.innerHTML = '<p>No skills added yet.</p>';
+                    }
+                })
+                .catch(error => console.error('Error fetching skills:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedSkills('can_share');
+            loadSavedSkills('want_to_learn');
+        });
+
+        fetch('fetch_all_skills.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tableBody = document.getElementById('skillsTableBody');
+                    data.skills.forEach(skill => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${skill.user_id}</td>
+                            <td>${skill.first_name}</td>
+                            <td>${skill.last_name}</td>
+                            <td>${skill.skill_name}</td>
+                            <td>${skill.skill_type}</td>
+                            <td>${skill.created_at}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    alert('Error fetching skills: ' + data.error);
+                }
+            })
+            .catch(error => console.error('Error fetching skills:', error));
     </script>
     <style>
         :root {
@@ -488,6 +545,47 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 margin: 0 auto;
             }
         }
+
+        .add-skill-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .add-skill-btn:hover {
+            background-color: #45a049;
+        }
+
+        .skills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .skill-tag {
+            display: inline-block;
+            background: #fff8e1;
+            color: #333;
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 14px;
+            border: 2px solid #ffeb3b;
+            transition: all 0.3s ease;
+        }
+
+        .skill-tag:hover {
+            background: #ffeb3b;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -531,8 +629,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     </div>
                     <div class="stat-item">
                         <div class="stat-value"><?php echo $user['Education']; ?></div>
-                        <div class="stat-label">Education</div>
-                    </div> -->
+                        <div class="stat-label">Education</div> -->
                     <div class="stat-item">
                         <div class="stat-value"><?php echo $chatCount; ?></div>
                         <div class="stat-label">Matches</div>
@@ -554,56 +651,31 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             <div class="profile-section">
                 <div class="section-title">Skills I Can Share</div>
-                <div class="skills-container">
-                    <div class="skill-tag" onclick="openSkillsModal(event)">Add your skills</div>
+                <div class="skills-container" id="skills-can-share">
+                    <!-- Skills will be dynamically loaded here -->
                 </div>
-                <div class="skills-container" id="skills-container">
-                    <div class="skill-tag" onclick="openSkillsModal(event)">Add skills you want to learn</div>
+                <button class="add-skill-btn" onclick="openSkillsModal('can_share')">Add Skills You Can Share</button>
+            </div>
+
+            <div class="profile-section">
+                <div class="section-title">Skills I Want to Learn</div>
+                <div class="skills-container" id="skills-want-to-learn">
+                    <!-- Skills will be dynamically loaded here -->
                 </div>
+                <button class="add-skill-btn" onclick="openSkillsModal('want_to_learn')">Add Skills You Want to Learn</button>
+            </div>
 
-                <!-- Skills Modal -->
-                <div id="skillsModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close" onclick="closeSkillsModal()">&times;</span>
-                        <h2>Select Up to 3 Skills</h2>
-                        <div class="skills-list">
-                            <?php
-                            // Get predefined skills using direct SQL query
-                            $stmt = $conn->prepare("SELECT * FROM predefined_skills ORDER BY category, skill_name");
-                            $stmt->execute();
-                            $skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                            // Get user's current skills (temporarily removed until table is created)
-                            $userSkills = []; // Empty array for now
-
-                            // Group skills by category
-                            $skillsByCategory = [];
-                            foreach ($skills as $skill) {
-                                $skillsByCategory[$skill['category']][] = $skill;
-                            }
-
-                            foreach ($skillsByCategory as $category => $categorySkills):
-                            ?>
-                            <div class="skill-category">
-                                <h3><?php echo htmlspecialchars($category); ?></h3>
-                                <div class="skill-items">
-                                    <?php foreach ($categorySkills as $skill): ?>
-                                    <div class="skill-item">
-                                        <input type="checkbox" 
-                                               id="skill_<?php echo htmlspecialchars($skill['id']); ?>"
-                                               value="<?php echo htmlspecialchars($skill['skill_name']); ?>"
-                                               <?php echo in_array($skill['skill_name'], $userSkills) ? 'checked' : ''; ?>>
-                                        <label for="skill_<?php echo htmlspecialchars($skill['id']); ?>"><?php echo htmlspecialchars($skill['skill_name']); ?></label>
-                                    </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="modal-buttons">
-                            <button onclick="saveSkills()" class="save-btn">Save</button>
-                            <button onclick="closeSkillsModal()" class="cancel-btn">Cancel</button>
-                        </div>
+            <!-- Skills Modal -->
+            <div id="skillsModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeSkillsModal()">&times;</span>
+                    <h2>Select Up to 3 Skills</h2>
+                    <div class="skills-list">
+                        <!-- Skills will be dynamically loaded here -->
+                    </div>
+                    <div class="modal-buttons">
+                        <button onclick="saveSkills()" class="save-btn">Save</button>
+                        <button onclick="closeSkillsModal()" class="cancel-btn">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -1097,24 +1169,31 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         function saveSkills() {
+            const selectedSkills = Array.from(document.querySelectorAll('.skills-list input:checked')).map(input => input.value);
+
+            console.log('Selected Skills:', selectedSkills);
+            console.log('Skill Type:', currentSkillType);
+
             fetch('save_skills.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    skills: currentSkills,
+                    skills: selectedSkills,
                     skill_type: currentSkillType
                 })
             })
             .then(response => response.json())
             .then(data => {
+                console.log('Response from backend:', data);
                 if (data.success) {
                     Swal.fire({
                         title: 'Success!',
                         text: 'Skills saved successfully!',
                         icon: 'success'
                     });
+                    loadSavedSkills(currentSkillType); // Reload saved skills
                 } else {
                     alert('You can only select up to 3 skills');
                 }
@@ -1310,9 +1389,10 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                         text: 'Skills saved successfully!',
                         icon: 'success'
                     });
+                    loadSavedSkills(currentSkillType); // Reload saved skills
                 } else {
-                    alert('You can only select up to 3 skills');
-                }
+            alert(data.error || 'An error occurred while saving skills'); // Display the backend error message
+        }
             });
             closeSkillsModal();
         }
@@ -1323,6 +1403,66 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 modal.style.display = 'none';
             }
         }
+
+        let currentSkillType = ''; // Track the current skill type
+        let currentSkills = []; // Track selected skills
+
+        function openSkillsModal(skillType) {
+            currentSkillType = skillType; // Set the current skill type
+            const modal = document.getElementById('skillsModal');
+            modal.style.display = 'block';
+
+            // Update modal title based on skill type
+            document.querySelector('.modal-content h2').textContent =
+                skillType === 'can_share' ? 'Select Skills You Can Share' : 'Select Skills You Want to Learn';
+
+            // Load predefined skills into the modal
+            fetch('fetch_predefined_skills.php')
+                .then(response => response.json())
+                .then(data => {
+                    const skillsList = document.querySelector('.skills-list');
+                    skillsList.innerHTML = ''; // Clear existing skills
+
+                    if (data.success && data.skills.length > 0) {
+                        data.skills.forEach(skill => {
+                            const skillItem = document.createElement('div');
+                            skillItem.className = 'skill-item';
+                            skillItem.innerHTML = `
+                                <input type="checkbox" id="skill_${skill.id}" value="${skill.skill_name}">
+                                <label for="skill_${skill.id}">${skill.skill_name}</label>
+                            `;
+                            skillsList.appendChild(skillItem);
+                        });
+                    } else {
+                        skillsList.innerHTML = '<p>No skills available.</p>';
+                    }
+                })
+                .catch(error => console.error('Error fetching predefined skills:', error));
+        }
     </script>
+    <style>
+        .skills-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .skill-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skill-item input {
+            cursor: pointer;
+        }
+
+        .skill-item label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
 </body>
-</html>>
+</html>

@@ -1,45 +1,46 @@
 <?php
+session_start();
 require_once 'SkillSwapDatabase.php';
 
-header('Content-Type: application/json');
+if (!isset($_SESSION['user_id'])) {
+    error_log('Session user_id is not set'); // Log the session issue
+    echo json_encode(['success' => false, 'error' => 'User not logged in']);
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+error_log('Session user_id: ' . $userId); // Log the user ID
+
+$data = json_decode(file_get_contents('php://input'), true);
+error_log('Raw input data: ' . file_get_contents('php://input')); // Log raw input
+error_log('Decoded data: ' . print_r($data, true)); // Log decoded data
+
+$skills = $data['skills'] ?? [];
+$skillType = $data['skill_type'] ?? '';
+
+error_log('Skills: ' . print_r($skills, true)); // Log skills
+error_log('Skill Type: ' . $skillType); // Log skill type
+
+if (empty($skills) || empty($skillType)) {
+    error_log('Invalid input: skills or skill_type is empty'); // Log the error
+    echo json_encode(['success' => false, 'error' => 'Invalid input']);
+    exit();
+}
 
 try {
     $db = new Database();
     $conn = $db->getConnection();
-    
-    // Get POST data
-    $data = json_decode(file_get_contents('php://input'), true);
-    
-    if (!isset($data['user_id']) || !isset($data['can_share_json']) || !isset($data['want_to_learn_json'])) {
-        throw new Exception('Invalid data');
-    }
 
-    $userId = $data['user_id'];
-    $canShareJson = $data['can_share_json'];
-    $wantToLearnJson = $data['want_to_learn_json'];
-
-    // Call stored procedure
-    $stmt = $conn->prepare("CALL SaveUserSkills(:user_id, :can_share_json, :want_to_learn_json)");
+    // Call the stored procedure
+    $stmt = $conn->prepare("CALL SaveUserSkills(:userId, :skillType, :skills)");
     $stmt->execute([
-        ':user_id' => $userId,
-        ':can_share_json' => $canShareJson,
-        ':want_to_learn_json' => $wantToLearnJson
+        ':userId' => $userId,
+        ':skillType' => $skillType,
+        ':skills' => json_encode($skills)
     ]);
-
-    // Commit transaction
-    $conn->commit();
 
     echo json_encode(['success' => true]);
-
-} catch (Exception $e) {
-    // Rollback transaction on error
-    if (isset($conn)) {
-        $conn->rollBack();
-    }
-    
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
+} catch (PDOException $e) {
+    error_log("Error executing stored procedure: " . $e->getMessage()); // Log the error
+    echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
 }

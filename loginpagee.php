@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
 }
 ?>
 
-<?php include 'menu2.php'; ?>
+<?php include 'menu.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
