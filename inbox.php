@@ -343,8 +343,8 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php foreach ($requests as $request): ?>
                 <div class="request">
                     <div class="profile-image">
-                        <img src="<?php echo !empty($user['profile_picture']) 
-                            ? ('data:image/jpeg;base64,' . base64_encode($user['profile_picture'])) 
+                        <img src="<?php echo !empty($request['Profile_Picture']) 
+                            ? ('data:image/jpeg;base64,' . base64_encode($request['Profile_Picture'])) 
                             : 'default-profile.png'; ?>" alt="Profile Picture">
                     </div>
                     <h3>Request from <?php echo htmlspecialchars($request['sender_name'] . ' ' . $request['sender_last_name']); ?></h3>
