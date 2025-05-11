@@ -50,7 +50,8 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(to right, #fdfd96, #fff);
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
         }
 
         .chat-container {

@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'login') {
         } elseif ($password === $user['Password']) {
             $_SESSION['user_id'] = $user['User_ID']; 
             $_SESSION['user_email'] = $user['Email'];
-            header("Location: Interests.php?submit=success");
+            header("Location: home.php?submit=success");
             exit(); 
         } else {
             $error = 'login';
