@@ -42,6 +42,8 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Great+Vibes:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -57,9 +59,10 @@ try {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start; /* Align content to the top */
             height: 100vh;
             gap: 20px;
+            padding-top: 20px; /* Add padding to move content below the navbar */
         }
 
         .announcement-container {
@@ -70,6 +73,8 @@ try {
             text-align: center;
             width: 80%;
             max-width: 800px;
+            overflow-y: auto; /* Allow scrolling for long announcements */
+            max-height: 50vh; /* Limit height to prevent overflow */
         }
 
         .announcement-title {
@@ -85,12 +90,11 @@ try {
 
         .user-greeting {
             text-align: center;
-            margin-top: 20px;
+            margin-bottom: 20px; /* Add spacing between greeting and announcement */
         }
 
         .user-greeting h1 {
             font-size: 60px;
-            margin-bottom: 10px;
             white-space: nowrap; /* Prevent text wrapping */
             overflow: hidden;
             border-right: 2px solid #000; /* Cursor effect */
@@ -103,9 +107,12 @@ try {
         }
 
         .user-greeting .skillswap {
+            font-family: 'Great Vibes', cursive; /* Use the fancy font */
             font-size: 100px;
             font-weight: bold;
             color: #000;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); /* Add a subtle shadow for elegance */
+            margin-top: 10px;
         }
 
         /* Typing Animation */
@@ -166,6 +173,13 @@ try {
         <img src="ssbg4.png" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
     </div>
     <div class="main-container">
+        <!-- User Greeting Section -->
+        <div class="user-greeting">
+            <h1 id="greeting-text">Hi <?php echo htmlspecialchars($user['First_Name']); ?>!</h1>
+            <p>Let your skills shine through</p>
+            <div class="skillswap">SkillSwap</div>
+        </div>
+
         <!-- Announcement Section -->
         <div class="announcement-container">
             <?php if ($currentAnnouncement): ?>
@@ -182,13 +196,6 @@ try {
                     No announcements available at the moment.
                 </div>
             <?php endif; ?>
-        </div>
-
-        <!-- User Greeting Section -->
-        <div class="user-greeting">
-            <h1 id="greeting-text">Hi <?php echo htmlspecialchars($user['First_Name']); ?>!</h1>
-            <p>Let your skills shine through</p>
-            <div class="skillswap">SKILLSWAP</div>
         </div>
     </div>
 

@@ -19,7 +19,7 @@ $admin_name = $_SESSION['admin_name'];
 $admin_role = $_SESSION['admin_role'];
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['firstName'], $_POST['lastName'], $_POST['email'], $_POST['password'], $_POST['role'])) {
     try {
         // Get form data
         $firstName = $_POST['firstName'];
@@ -43,6 +43,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: manage_admins.php");
         exit();
     }
+}
+
+// Handle activate/deactivate admin
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['admin_id'])) {
+    header('Content-Type: application/json');
+    $admin_id = (int)$_POST['admin_id'];
+    $action = $_POST['action'];
+    try {
+        if ($action === 'deactivate') {
+            $stmt = $conn->prepare("UPDATE admins SET Is_Active = 0 WHERE Admin_ID = ?");
+            $stmt->execute([$admin_id]);
+            echo json_encode(['success' => true, 'status' => 'deactivated']);
+        } elseif ($action === 'activate') {
+            $stmt = $conn->prepare("UPDATE admins SET Is_Active = 1 WHERE Admin_ID = ?");
+            $stmt->execute([$admin_id]);
+            echo json_encode(['success' => true, 'status' => 'activated']);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid action']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit();
 }
 
 // Fetch all admins
@@ -152,37 +175,37 @@ $super = paginate($admins_super, $tab === 'super_admin' ? $page : 1, $adminsPerP
         }
 
         .sidebar-menu {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.sidebar-menu li {
-    margin-bottom: 18px; /* Consistent spacing */
-}
-.sidebar-menu li:last-child {
-    margin-bottom: 0;
-}
-.sidebar-menu a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 15px;
-    color: #333;
-    text-decoration: none;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    font-size: 18px;
-}
-.sidebar-menu a:hover {
-    background: #f0f2f5;
-}
-.sidebar-menu a.active {
-    background: #ffeb3b;
-    color: #000;
-}
-.sidebar-menu i {
-    font-size: 20px;
-}
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-menu li {
+            margin-bottom: 18px;
+        }
+        .sidebar-menu li:last-child {
+            margin-bottom: 0;
+        }
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 18px;
+        }
+        .sidebar-menu a:hover {
+            background: #f0f2f5;
+        }
+        .sidebar-menu a.active {
+            background: #ffeb3b;
+            color: #000;
+        }
+        .sidebar-menu i {
+            font-size: 20px;
+        }
 
         .main-content {
             margin-left: 250px;
@@ -192,10 +215,14 @@ $super = paginate($admins_super, $tab === 'super_admin' ? $page : 1, $adminsPerP
 
         .card {
             background: #fff;
-            padding: 24px 24px 10px 24px;
-            border-radius: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            max-width: 100%;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: #333;
         }
 
         .tab-bar {
@@ -226,6 +253,12 @@ $super = paginate($admins_super, $tab === 'super_admin' ? $page : 1, $adminsPerP
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
 
         table {
             width: 100%;
@@ -391,6 +424,140 @@ $super = paginate($admins_super, $tab === 'super_admin' ? $page : 1, $adminsPerP
         .submit-btn:hover {
             background: #ffd600;
         }
+        /* Responsive Breakpoints */
+        @media (max-width: 991px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                top: auto;
+                box-shadow: none;
+                margin-top: 70px;
+            }
+            .main-content {
+                margin-left: 0;
+                margin-top: 150px;
+                padding: 15px;
+            }
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px 20px;
+                min-height: 70px;
+            }
+            .admin-info {
+                margin-top: 10px;
+            }
+            .tab-bar {
+                flex-direction: column;
+            }
+            .pagination {
+                flex-wrap: wrap;
+            }
+        }
+        @media (max-width: 600px) {
+            .navbar {
+                padding: 8px 15px;
+            }
+            .logo {
+                font-size: 18px;
+            }
+            .sidebar-menu a {
+                font-size: 16px;
+            }
+            .card h2,
+            th,
+            td {
+                font-size: 14px;
+            }
+            .action-btn,
+            .page-link {
+                font-size: 14px;
+                padding: 6px 12px;
+            }
+            .tab-btn {
+                padding: 8px 15px;
+                font-size: 14px;
+            }
+        }
+        @media screen and (max-width: 1024px) {
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            .card {
+                padding: 16px;
+            }
+            .tab-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            th, td {
+                padding: 12px 8px;
+                font-size: 14px;
+            }
+        }
+        @media screen and (max-width: 768px) {
+            .navbar {
+                padding: 10px 15px;
+            }
+            .logo {
+                font-size: 20px;
+            }
+            .logo img {
+                height: 32px;
+            }
+            .admin-info {
+                gap: 10px;
+            }
+            .admin-name {
+                font-size: 14px;
+            }
+            .admin-role {
+                font-size: 12px;
+            }
+            .tab-bar {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .tab-btn {
+                padding: 8px 16px;
+                font-size: 13px;
+                flex: 1;
+                min-width: 120px;
+                text-align: center;
+            }
+            th, td {
+                padding: 10px 6px;
+                font-size: 13px;
+                white-space: nowrap;
+            }
+            .action-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+        @media screen and (max-width: 480px) {
+            .main-content {
+                padding: 15px;
+            }
+            .card {
+                padding: 12px;
+            }
+            .tab-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+                min-width: 100px;
+            }
+            th, td {
+                padding: 8px 4px;
+                font-size: 12px;
+            }
+            .action-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -426,19 +593,12 @@ $super = paginate($admins_super, $tab === 'super_admin' ? $page : 1, $adminsPerP
                     Manage Users
                 </a>
             </li>
-            
-            <li>
-                <a href="Reports.php">
-                    <i class="fas fa-flag"></i>
-                    Review Reports
-                </a>
-            </li>
-            <li>
+            <!-- <li>
                 <a href="announcement.php">
                     <i class="fas fa-bullhorn"></i>
                     Announcement
                 </a>
-            </li>
+            </li> -->
             <?php if ($admin_role === 'super_admin'): ?>
             <li>
                 <a href="manage_admins.php" class="active">
@@ -448,13 +608,19 @@ $super = paginate($admins_super, $tab === 'super_admin' ? $page : 1, $adminsPerP
             </li>
             <?php endif; ?>
             <li>
+                <a href="ManageComments.php">
+                    <i class="fas fa-comments"></i>
+                    Manage Comments
+                </a>
+            </li>
+            <li>
                 <a href="manageposts.php">
                     <i class="fas fa-thumbtack"></i>
                     Manage Posts
                 </a>
             </li>
             <li>
-                <a href="Community.php">
+                <a href="Community(Admin).php">
                     <i class="fas fa-users-cog"></i>
                     Community
                 </a>
@@ -503,32 +669,41 @@ $super = paginate($admins_super, $tab === 'super_admin' ? $page : 1, $adminsPerP
             if ($tab === 'super_admin') $tabData = $super;
             ?>
             <div id="tab-<?= $tab ?>" class="tab-content active">
-                <table>
-                    <thead>
-                        <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody>
-                    <?php if (!empty($tabData['data'])): ?>
-                        <?php foreach ($tabData['data'] as $admin): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($admin['Admin_ID']) ?></td>
-                                <td><?= htmlspecialchars($admin['First_Name'] . ' ' . $admin['Last_Name']) ?></td>
-                                <td><?= htmlspecialchars($admin['Email']) ?></td>
-                                <td><?= htmlspecialchars($admin['Role']) ?></td>
-                                <td><?= $admin['Is_Active'] ? 'Active' : 'Inactive' ?></td>
-                                <td>
-                                    <button class="action-btn view-btn" onclick="viewAdmin(<?= $admin['Admin_ID'] ?>)"><i class="fas fa-eye"></i> View</button>
-                                    <?php if ($admin_role === 'super_admin'): ?>
-                                        <button class="action-btn restrict-btn" onclick="toggleAdminStatus(<?= $admin['Admin_ID'] ?>)"><i class="fas fa-ban"></i> <?= $admin['Is_Active'] ? 'Deactivate' : 'Activate' ?></button>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr><td colspan="6" style="text-align:center; color:#888;">No admins found.</td></tr>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                        <?php if (!empty($tabData['data'])): ?>
+                            <?php foreach ($tabData['data'] as $admin): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($admin['Admin_ID']) ?></td>
+                                    <td><?= htmlspecialchars($admin['First_Name'] . ' ' . $admin['Last_Name']) ?></td>
+                                    <td><?= htmlspecialchars($admin['Email']) ?></td>
+                                    <td><?= htmlspecialchars($admin['Role']) ?></td>
+                                    <td><?= $admin['Is_Active'] ? 'Active' : 'Inactive' ?></td>
+                                    <td>
+                                        <?php if ($admin_role === 'super_admin' && $admin['Admin_ID'] != $admin_id): ?>
+                                            <?php if ($admin['Is_Active']): ?>
+                                                <button class="action-btn restrict-btn" onclick="toggleAdminStatus(<?= $admin['Admin_ID'] ?>, 'deactivate')">
+                                                    <i class="fas fa-ban"></i> Deactivate
+                                                </button>
+                                            <?php else: ?>
+                                                <button class="action-btn view-btn" style="background:#4CAF50;color:#fff;" onclick="toggleAdminStatus(<?= $admin['Admin_ID'] ?>, 'activate')">
+                                                    <i class="fas fa-check"></i> Activate
+                                                </button>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr><td colspan="6" style="text-align:center; color:#888;">No admins found.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
                 <?php
                 $totalPages = $tabData['totalPages'] ?? 1;
                 $curPage = $tabData['page'] ?? 1;
@@ -612,9 +787,60 @@ $super = paginate($admins_super, $tab === 'super_admin' ? $page : 1, $adminsPerP
             console.log('View admin:', adminId);
         }
 
-        function toggleAdminStatus(adminId) {
-            // Implement toggle admin status functionality
-            console.log('Toggle admin status:', adminId);
+        function toggleAdminStatus(adminId, action) {
+            let actionText = action === 'deactivate' ? 'deactivate' : 'activate';
+            let confirmText = action === 'deactivate' ? 'This admin will not be able to log in.' : 'This admin will be able to log in again.';
+            
+            Swal.fire({
+                title: `Are you sure you want to ${actionText} this admin?`,
+                text: confirmText,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: action === 'deactivate' ? '#d33' : '#4CAF50',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: `Yes, ${actionText} it!`
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create form data
+                    const formData = new FormData();
+                    formData.append('action', action);
+                    formData.append('admin_id', adminId);
+
+                    // Send AJAX request
+                    fetch('manage_admins.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: `Admin has been ${data.status}.`,
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error || 'Failed to update admin status'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred while updating admin status'
+                        });
+                    });
+                }
+            });
         }
 
         function switchTab(tab) {

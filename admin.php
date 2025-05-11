@@ -44,6 +44,7 @@ $daily_comments = $crud->getDailyComments($start_date, $end_date);
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        @media (max-width: 1600px) {
         * {
             margin: 0;
             padding: 0;
@@ -108,37 +109,37 @@ $daily_comments = $crud->getDailyComments($start_date, $end_date);
         }
 
         .sidebar-menu {
-    list-style: none;
+            list-style: none;
     padding: 0;
     margin: 0;
-}
-.sidebar-menu li {
+        }
+        .sidebar-menu li {
     margin-bottom: 18px; /* Consistent spacing */
 }
 .sidebar-menu li:last-child {
     margin-bottom: 0;
-}
-.sidebar-menu a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 15px;
-    color: #333;
-    text-decoration: none;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+        }
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
     font-size: 18px;
-}
-.sidebar-menu a:hover {
-    background: #f0f2f5;
-}
-.sidebar-menu a.active {
-    background: #ffeb3b;
-    color: #000;
-}
-.sidebar-menu i {
-    font-size: 20px;
-}
+        }
+        .sidebar-menu a:hover {
+            background: #f0f2f5;
+        }
+        .sidebar-menu a.active {
+            background: #ffeb3b;
+            color: #000;
+        }
+        .sidebar-menu i {
+            font-size: 20px;
+        }
 
         .main-content {
             margin-left: 250px;
@@ -218,6 +219,286 @@ $daily_comments = $crud->getDailyComments($start_date, $end_date);
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
             gap: 20px;
         }
+    }/* Base Styles (Mobile First) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background: #f0f2f5;
+}
+
+.navbar {
+    background: #fff;
+    padding: 10px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+}
+
+.logo img {
+    height: 35px;
+}
+
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.admin-name {
+    font-weight: 500;
+}
+
+.admin-role {
+    color: #666;
+    font-size: 14px;
+}
+
+.sidebar {
+    position: relative;
+    width: 100%;
+    background: #fff;
+    padding: 20px;
+    box-shadow: none;
+    top: 0;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-menu li {
+    margin-bottom: 18px;
+}
+
+.sidebar-menu li:last-child {
+    margin-bottom: 0;
+}
+
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    color: #333;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 18px;
+}
+
+.sidebar-menu a:hover {
+    background: #f0f2f5;
+}
+
+.sidebar-menu a.active {
+    background: #ffeb3b;
+    color: #000;
+}
+
+.sidebar-menu i {
+    font-size: 20px;
+}
+
+.main-content {
+    margin-top: 130px;
+    margin-left: 0;
+    padding: 20px;
+}
+
+.filter-section {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    background: #f0f2f5;
+    color: #333;
+}
+
+.filter-btn.active {
+    background: #ffeb3b;
+    color: #000;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-card h3 {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.stat-card .value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.chart-container {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.chart-container h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+
+/* Tablet (601px to 991px) */
+@media (max-width: 991px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        top: auto;
+        box-shadow: none;
+        margin-top: 70px;
+    }
+    .main-content {
+        margin-left: 0;
+        margin-top: 150px;
+        padding: 15px;
+    }
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px 20px;
+        min-height: 70px;
+    }
+    .admin-info {
+        margin-top: 10px;
+    }
+    .filter-buttons {
+        flex-direction: column;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 991px) {
+    .navbar {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .sidebar {
+        width: 200px;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        height: 100vh;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+        margin-top: 0;
+    }
+    .main-content {
+        margin-left: 200px;
+        margin-top: 70px;
+    }
+    .filter-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .chart-grid {
+        grid-template-columns: repeat(1, 1fr);
+    }
+}
+
+
+/* Laptops & Desktops (992px and up) */
+@media (min-width: 992px) {
+    .navbar {
+        flex-direction: row;
+        padding: 15px 30px;
+    }
+
+    .sidebar {
+        width: 250px;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        height: calc(100vh - 70px);
+        box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+    }
+
+    .main-content {
+        margin-left: 250px;
+        margin-top: 70px;
+        padding: 30px;
+    }
+
+    .filter-buttons {
+        flex-direction: row;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .chart-grid {
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    }
+}
+
+                
     </style>
 </head>
 <body>
@@ -253,18 +534,12 @@ $daily_comments = $crud->getDailyComments($start_date, $end_date);
                     Manage Users
                 </a>
             </li>
-            <li>
-                <a href="Reports.php">
-                    <i class="fas fa-flag"></i>
-                    Review Reports
-                </a>
-            </li>
-            <li>
+            <!-- <li>
                 <a href="announcement.php">
                     <i class="fas fa-bullhorn"></i>
                     Announcement
                 </a>
-            </li>
+            </li> -->
             <?php if ($admin_role === 'super_admin'): ?>
             <li>
                 <a href="manage_admins.php">
@@ -273,6 +548,12 @@ $daily_comments = $crud->getDailyComments($start_date, $end_date);
                 </a>
             </li>
             <?php endif; ?>
+            <li>
+                <a href="ManageComments.php">
+                    <i class="fas fa-comments"></i>
+                    Manage Comments
+                </a>
+            </li>
             <li>
                 <a href="manageposts.php">
                     <i class="fas fa-thumbtack"></i>

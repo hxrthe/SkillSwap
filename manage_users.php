@@ -155,303 +155,450 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['com
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
+       /* Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
 
-        body {
-            background: #f0f2f5;
-        }
+body {
+    background: #f0f2f5;
+}
 
-        .navbar {
-            background: #fff;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 1000;
-        }
+.navbar {
+    background: #fff;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-        }
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
 
-        .logo img {
-            height: 40px;
-        }
+.logo img {
+    height: 40px;
+}
 
-        .admin-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
 
-        .admin-name {
-            font-weight: 500;
-        }
+.admin-name {
+    font-weight: 500;
+}
 
-        .admin-role {
-            color: #666;
-            font-size: 14px;
-        }
+.admin-role {
+    color: #666;
+    font-size: 14px;
+}
 
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 70px;
-            bottom: 0;
-            width: 250px;
-            background: #fff;
-            padding: 20px;
-            box-shadow: 2px 0 4px rgba(0,0,0,0.1);
-        }
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 70px;
+    bottom: 0;
+    width: 250px;
+    background: #fff;
+    padding: 20px;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+}
 
-        .sidebar-menu {
-            list-style: none;
+.sidebar-menu {
+    list-style: none;
     padding: 0;
     margin: 0;
-        }
-        .sidebar-menu li {
-    margin-bottom: 18px; /* Consistent spacing */
+}
+.sidebar-menu li {
+    margin-bottom: 18px;
 }
 .sidebar-menu li:last-child {
     margin-bottom: 0;
-        }
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            color: #333;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
+}
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    color: #333;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
     font-size: 18px;
-        }
-        .sidebar-menu a:hover {
-            background: #f0f2f5;
-        }
-        .sidebar-menu a.active {
-            background: #ffeb3b;
-            color: #000;
-        }
-        .sidebar-menu i {
-            font-size: 20px;
-        }
+}
+.sidebar-menu a:hover {
+    background: #f0f2f5;
+}
+.sidebar-menu a.active {
+    background: #ffeb3b;
+    color: #000;
+}
+.sidebar-menu i {
+    font-size: 20px;
+}
 
-        .main-content {
-            margin-left: 250px;
-            margin-top: 70px;
-            padding: 30px;
-        }
+.main-content {
+    margin-left: 250px;
+    margin-top: 70px;
+    padding: 30px;
+}
 
-        .card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-        .card h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
+.card h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
 
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
 
-        th {
-            background: #f0f2f5;
-            font-weight: 500;
-        }
+th {
+    background: #f0f2f5;
+    font-weight: 500;
+}
 
-        tr:hover {
-            background: #f9f9f9;
-        }
+tr:hover {
+    background: #f9f9f9;
+}
 
-        .action-btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
+.action-btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
 
-        .view-btn {
-            background: #ffeb3b;
-            color: #000;
-        }
+.view-btn {
+    background: #ffeb3b;
+    color: #000;
+}
 
-        .view-btn:hover {
-            background: #ffd600;
-        }
+.view-btn:hover {
+    background: #ffd600;
+}
 
-        .restrict-btn {
-            background: #ff4444;
-            color: #fff;
-        }
+.restrict-btn {
+    background: #ff4444;
+    color: #fff;
+}
 
-        .restrict-btn:hover {
-            background: #cc0000;
-        }
+.restrict-btn:hover {
+    background: #cc0000;
+}
 
-        .ban-btn {
-            background: #dc3545;
-            color: #fff;
-        }
+.ban-btn {
+    background: #dc3545;
+    color: #fff;
+}
 
-        .ban-btn:hover {
-            background: #c82333;
-        }
+.ban-btn:hover {
+    background: #c82333;
+}
 
-        .action-btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
+.action-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
 
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+}
 
-        .modal-content {
-            position: relative;
-            background: #fff;
-            width: 90%;
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+.modal-content {
+    position: relative;
+    background: #fff;
+    width: 90%;
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
 
-        .close-modal {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            font-size: 24px;
-            cursor: pointer;
-            color: #666;
-        }
+.close-modal {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+.form-group {
+    margin-bottom: 15px;
+}
 
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
 
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
 
-        .form-group textarea {
-            height: 100px;
-            resize: vertical;
-        }
+.form-group textarea {
+    height: 100px;
+    resize: vertical;
+}
 
-        /* Tab Styles */
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+.tab-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
 
-        .tab-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 500;
-            background: #f0f2f5;
-            color: #333;
-        }
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    background: #f0f2f5;
+    color: #333;
+}
 
-        .tab-btn.active {
-            background: #ffeb3b;
-            color: #000;
-        }
+.tab-btn.active {
+    background: #ffeb3b;
+    color: #000;
+}
 
-        .tab-content {
-            display: none;
-        }
+.tab-content {
+    display: none;
+}
 
-        .tab-content.active {
-            display: block;
-        }
+.tab-content.active {
+    display: block;
+}
 
-        .pagination {
-            display: inline-flex;
-            list-style: none;
-            padding: 0;
-            margin: 0 auto;
-            justify-content: center;
-        }
-        .page-item {
-            margin-right: 0;
-        }
-        .page-link {
-            padding: 6px 18px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            background: #fff;
-            color: #333;
-            text-decoration: none;
-            font-size: 18px;
-            font-weight: normal;
-            margin-right: 5px;
-            transition: background 0.2s, color 0.2s;
-            display: inline-block;
-        }
-        .page-link.active, .page-item.active .page-link {
-            background: #ffeb3b;
-            color: #000;
-            font-weight: bold;
-            border: 1.5px solid #ffeb3b;
-        }
-        .page-item.disabled .page-link {
-            color: #bbb;
-            pointer-events: none;
-            background: #fff;
-            border: 1px solid #ddd;
-        }
+.pagination {
+    display: inline-flex;
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    justify-content: center;
+}
+.page-item {
+    margin-right: 0;
+}
+.page-link {
+    padding: 6px 18px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    color: #333;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: normal;
+    margin-right: 5px;
+    transition: background 0.2s, color 0.2s;
+    display: inline-block;
+}
+.page-link.active, .page-item.active .page-link {
+    background: #ffeb3b;
+    color: #000;
+    font-weight: bold;
+    border: 1.5px solid #ffeb3b;
+}
+.page-item.disabled .page-link {
+    color: #bbb;
+    pointer-events: none;
+    background: #fff;
+    border: 1px solid #ddd;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 991px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        top: auto;
+        box-shadow: none;
+        margin-top: 70px;
+    }
+    .main-content {
+        margin-left: 0;
+        margin-top: 150px;
+        padding: 15px;
+    }
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px 20px;
+        min-height: 70px;
+    }
+    .admin-info {
+        margin-top: 10px;
+    }
+    .tab-buttons {
+        flex-direction: column;
+    }
+    .pagination {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 600px) {
+    .navbar {
+        padding: 8px 15px;
+    }
+
+    .logo {
+        font-size: 18px;
+    }
+
+    .sidebar-menu a {
+        font-size: 16px;
+    }
+
+    .card h2,
+    th,
+    td {
+        font-size: 14px;
+    }
+
+    .action-btn,
+    .page-link {
+        font-size: 14px;
+        padding: 6px 12px;
+    }
+
+    .tab-btn {
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media screen and (max-width: 1024px) {
+    .main-content {
+        margin-left: 0;
+        padding: 20px;
+    }
+    .card {
+        padding: 16px;
+    }
+    .tab-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+    th, td {
+        padding: 12px 8px;
+        font-size: 14px;
+    }
+}
+@media screen and (max-width: 768px) {
+    .navbar {
+        padding: 10px 15px;
+    }
+    .logo {
+        font-size: 20px;
+    }
+    .logo img {
+        height: 32px;
+    }
+    .admin-info {
+        gap: 10px;
+    }
+    .admin-name {
+        font-size: 14px;
+    }
+    .admin-role {
+        font-size: 12px;
+    }
+    .tab-bar, .tab-buttons {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .tab-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+    }
+    th, td {
+        padding: 10px 6px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    .action-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
+@media screen and (max-width: 480px) {
+    .main-content {
+        padding: 15px;
+    }
+    .card {
+        padding: 12px;
+    }
+    .tab-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        min-width: 100px;
+    }
+    th, td {
+        padding: 8px 4px;
+        font-size: 12px;
+    }
+    .action-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+}
     </style>
 </head>
 <body>
@@ -487,18 +634,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['com
                     Manage Users
                 </a>
             </li>
-            <li>
-                <a href="Reports.php">
-                    <i class="fas fa-flag"></i>
-                    Review Reports
-                </a>
-            </li>
-            <li>
+            <!-- <li>
                 <a href="announcement.php">
                     <i class="fas fa-bullhorn"></i>
                     Announcement
                 </a>
-            </li>
+            </li> -->
             <?php if ($admin_role === 'super_admin'): ?>
             <li>
                 <a href="manage_admins.php">
@@ -508,13 +649,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['com
             </li>
             <?php endif; ?>
             <li>
+                <a href="ManageComments.php">
+                    <i class="fas fa-comments"></i>
+                    Manage Comments
+                </a>
+            </li>
+            <li>
                 <a href="manageposts.php">
                     <i class="fas fa-thumbtack"></i>
                     Manage Posts
                 </a>
             </li>
             <li>
-                <a href="Community.php">
+                <a href="Community(Admin).php">
                     <i class="fas fa-users-cog"></i>
                     Community
                 </a>
@@ -534,54 +681,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['com
             <!-- All Users Tab -->
             <div id="all-users" class="tab-content active">
                 <h2>All Users</h2>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Verified</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($users as $user): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($user['User_ID']) ?></td>
-                            <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
-                            <td><?= htmlspecialchars($user['Email']) ?></td>
-                            <td>
-                                <?php echo $user['Is_Verified'] ? 
-                                    '<span style="color:green">Yes</span>' : 
-                                    '<span style="color:red">No</span>'; ?>
-                            </td>
-                            <td>
-                                <?php if (isset($user['Status']) && $user['Status']): ?>
-                                    <span style="color: <?php echo $user['Status'] === 'banned' ? 'red' : 'orange'; ?>;">
-                                        <?php echo ucfirst($user['Status']); ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span style="color:green">Active</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <div style="display: flex; gap: 8px;">
-                                    <button class="action-btn view-btn">View</button>
-                                    <?php if (!isset($user['Status']) || !$user['Status']): ?>
-                                        <button class="action-btn restrict-btn" onclick="openRestrictModal(<?php echo $user['User_ID']; ?>, '<?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?>', 'restricted')">Restrict</button>
-                                        <button class="action-btn ban-btn" onclick="openRestrictModal(<?php echo $user['User_ID']; ?>, '<?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?>', 'banned')">Ban</button>
-                                    <?php else: ?>
-                                        <button class="action-btn restrict-btn" style="background: #999; cursor: not-allowed;" disabled>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Verified</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($users as $user): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($user['User_ID']) ?></td>
+                                <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
+                                <td><?= htmlspecialchars($user['Email']) ?></td>
+                                <td>
+                                    <?php echo $user['Is_Verified'] ? 
+                                        '<span style="color:green">Yes</span>' : 
+                                        '<span style="color:red">No</span>'; ?>
+                                </td>
+                                <td>
+                                    <?php if (isset($user['Status']) && $user['Status']): ?>
+                                        <span style="color: <?php echo $user['Status'] === 'banned' ? 'red' : 'orange'; ?>;">
                                             <?php echo ucfirst($user['Status']); ?>
-                                        </button>
+                                        </span>
+                                    <?php else: ?>
+                                        <span style="color:green">Active</span>
                                     <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 8px;">
+                                       
+                                        <?php if (!isset($user['Status']) || !$user['Status']): ?>
+                                            <button class="action-btn restrict-btn" onclick="openRestrictModal(<?php echo $user['User_ID']; ?>, '<?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?>', 'restricted')">Restrict</button>
+                                            <button class="action-btn ban-btn" onclick="openRestrictModal(<?php echo $user['User_ID']; ?>, '<?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?>', 'banned')">Ban</button>
+                                        <?php else: ?>
+                                            <button class="action-btn restrict-btn" style="background: #999; cursor: not-allowed;" disabled>
+                                                <?php echo ucfirst($user['Status']); ?>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
                 <div style="text-align:center; margin-top:20px;">
                 <nav aria-label="Page navigation example">
                   <ul class="pagination">
@@ -604,39 +753,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['com
             <!-- Restricted Users Tab -->
             <div id="restricted-users" class="tab-content">
                 <h2>Restricted Users</h2>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Status</th>
-                            <th>Reason</th>
-                            <th>Restricted Until</th>
-                            <th>Restricted By</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($restricted_users as $user): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($user['User_ID']) ?></td>
-                            <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
-                            <td><?= htmlspecialchars($user['Email']) ?></td>
-                            <td><?= htmlspecialchars($user['Status']) ?></td>
-                            <td><?= htmlspecialchars($user['Reason']) ?></td>
-                            <td><?php echo $user['Restricted_Until'] ? date('M d, Y', strtotime($user['Restricted_Until'])) : 'Permanent'; ?></td>
-                            <td><?= htmlspecialchars($user['Admin_First_Name'] . ' ' . $user['Admin_Last_Name']) ?></td>
-                            <td>
-                                <div style="display: flex; gap: 8px;">
-                                    <button class="action-btn view-btn">View</button>
-                                    <button class="action-btn restrict-btn" onclick="removeRestriction(<?php echo $user['User_ID']; ?>)">Remove Restriction</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Reason</th>
+                                <th>Restricted Until</th>
+                                <th>Restricted By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($restricted_users as $user): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($user['User_ID']) ?></td>
+                                <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
+                                <td><?= htmlspecialchars($user['Email']) ?></td>
+                                <td><?= htmlspecialchars($user['Status']) ?></td>
+                                <td><?= htmlspecialchars($user['Reason']) ?></td>
+                                <td><?php echo $user['Restricted_Until'] ? date('M d, Y', strtotime($user['Restricted_Until'])) : 'Permanent'; ?></td>
+                                <td><?= htmlspecialchars($user['Admin_First_Name'] . ' ' . $user['Admin_Last_Name']) ?></td>
+                                <td>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="action-btn view-btn">View</button>
+                                        <button class="action-btn restrict-btn" onclick="removeRestriction(<?php echo $user['User_ID']; ?>)">Remove Restriction</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
                 <div style="text-align:center; margin-top:20px;">
                 <nav aria-label="Restricted Users Page navigation">
                   <ul class="pagination">
@@ -659,39 +810,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['com
             <!-- Banned Users Tab -->
             <div id="banned-users" class="tab-content">
                 <h2>Banned Users</h2>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Status</th>
-                            <th>Reason</th>
-                            <th>Banned Until</th>
-                            <th>Banned By</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($banned_users as $user): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($user['User_ID']) ?></td>
-                            <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
-                            <td><?= htmlspecialchars($user['Email']) ?></td>
-                            <td><?= htmlspecialchars($user['Status']) ?></td>
-                            <td><?= htmlspecialchars($user['Reason']) ?></td>
-                            <td><?php echo $user['Restricted_Until'] ? date('M d, Y', strtotime($user['Restricted_Until'])) : 'Permanent'; ?></td>
-                            <td><?= htmlspecialchars($user['Admin_First_Name'] . ' ' . $user['Admin_Last_Name']) ?></td>
-                            <td>
-                                <div style="display: flex; gap: 8px;">
-                                    <button class="action-btn view-btn">View</button>
-                                    <button class="action-btn restrict-btn" onclick="removeRestriction(<?php echo $user['User_ID']; ?>)">Remove Ban</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Reason</th>
+                                <th>Banned Until</th>
+                                <th>Banned By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($banned_users as $user): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($user['User_ID']) ?></td>
+                                <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
+                                <td><?= htmlspecialchars($user['Email']) ?></td>
+                                <td><?= htmlspecialchars($user['Status']) ?></td>
+                                <td><?= htmlspecialchars($user['Reason']) ?></td>
+                                <td><?php echo $user['Restricted_Until'] ? date('M d, Y', strtotime($user['Restricted_Until'])) : 'Permanent'; ?></td>
+                                <td><?= htmlspecialchars($user['Admin_First_Name'] . ' ' . $user['Admin_Last_Name']) ?></td>
+                                <td>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="action-btn view-btn">View</button>
+                                        <button class="action-btn restrict-btn" onclick="removeRestriction(<?php echo $user['User_ID']; ?>)">Remove Ban</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
                 <div style="text-align:center; margin-top:20px;">
                 <nav aria-label="Banned Users Page navigation">
                   <ul class="pagination">

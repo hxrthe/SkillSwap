@@ -1,4 +1,3 @@
-
 <?php
 
 session_start(); 
@@ -43,24 +42,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'login') {
     $password = $_POST['password'];
 
     // First check if it's an admin
-    $stmt = $conn->prepare("SELECT * FROM admins WHERE Email = :email AND Is_Active = 1");
+    $stmt = $conn->prepare("SELECT * FROM admins WHERE Email = :email");
     $stmt->bindParam(':email', $email);
     $stmt->execute();
     $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($admin && $password === $admin['Password']) {
-        // Update last login time
-        $updateStmt = $conn->prepare("UPDATE admins SET Last_Login = CURRENT_TIMESTAMP WHERE Admin_ID = :admin_id");
-        $updateStmt->execute([':admin_id' => $admin['Admin_ID']]);
+    if ($admin) {
+        if (!$admin['Is_Active']) {
+            $error = 'deactivated_admin';
+            $_SESSION['activeTab'] = 'login';
+        } elseif (password_verify($password, $admin['Password'])) {
+            // Update last login time
+            $updateStmt = $conn->prepare("UPDATE admins SET Last_Login = CURRENT_TIMESTAMP WHERE Admin_ID = :admin_id");
+            $updateStmt->execute([':admin_id' => $admin['Admin_ID']]);
 
-        // Set admin session
-        $_SESSION['admin_id'] = $admin['Admin_ID'];
-        $_SESSION['admin_email'] = $admin['Email'];
-        $_SESSION['admin_role'] = $admin['Role'];
-        $_SESSION['admin_name'] = $admin['First_Name'] . ' ' . $admin['Last_Name'];
+            // Set admin session
+            $_SESSION['admin_id'] = $admin['Admin_ID'];
+            $_SESSION['admin_email'] = $admin['Email'];
+            $_SESSION['admin_role'] = $admin['Role'];
+            $_SESSION['admin_name'] = $admin['First_Name'] . ' ' . $admin['Last_Name'];
 
-        header("Location: admin.php");
-        exit();
+            header("Location: admin.php");
+            exit();
+        } else {
+            $error = 'login';
+            $_SESSION['activeTab'] = 'login';
+        }
     }
 
     // If not admin, check if it's a regular user
@@ -70,6 +77,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'login') {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
+        // Check if user is banned
+        $banCheck = $conn->prepare("SELECT 1 FROM user_restrictions WHERE User_ID = ? AND Status = 'banned' AND (Restricted_Until IS NULL OR Restricted_Until > NOW())");
+        $banCheck->execute([$user['User_ID']]);
+        if ($banCheck->fetchColumn()) {
+            header("Location: loginpagee.php?banned=1");
+            exit();
+        }
         if ($user['Is_Verified'] == 0) {
             $error = 'not_verified';
             $_SESSION['activeTab'] = 'login';
@@ -292,6 +306,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
 </head>
 
 <body>
+<?php if (isset($_GET['banned'])): ?>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+Swal.fire({
+    icon: 'error',
+    title: 'You are banned',
+    text: 'Your account has been banned. You cannot log in at this time.',
+    confirmButtonText: 'I understand'
+}).then(() => {
+    window.location.href = 'loginpagee.php';
+});
+</script>
+<?php endif; ?>
     <div class="container">
         <div class="form-box login">
             <form method="POST" action="">
@@ -687,6 +714,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
             icon: "error",
             title: "Invalid Verification",
             text: "The verification code is invalid or has expired. Please request a new code."
+        });
+        <?php elseif ($error === 'deactivated_admin'): ?>
+        Swal.fire({
+            icon: "error",
+            title: "Account Deactivated",
+            text: "Your admin account has been deactivated. Please contact the super admin for assistance."
         });
         <?php endif; ?>
 

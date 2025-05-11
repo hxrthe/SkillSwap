@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKILLSWAP</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+        <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Great+Vibes:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
+            font-family: 'Great Vibes', cursive; /* Use the fancy font */
         }
         .header {
             display: flex;
@@ -19,7 +21,7 @@
             padding: 20px 50px;
             background-color: yellow;
             color: black;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Great Vibes', cursive; /* Use the fancy font */
             border: 2px solid black;
             box-shadow: 0 4px 8px rgba(87, 87, 87, 0.09);
             border-radius: 0 0 30px 30px;
@@ -27,6 +29,7 @@
         .header .logo {
             font-size: 30px;
             font-weight: bold;
+            font-family: 'Great Vibes', cursive; /* Use the fancy font */
         }
         .header nav {
             display: flex;

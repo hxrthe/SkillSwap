@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 require_once 'SkillSwapDatabase.php';
 require_once 'sp.php';
@@ -11,7 +15,6 @@ if (!isset($_SESSION['admin_id'])) {
 
 $db = new Database();
 $conn = $db->getConnection();
-$crud = new Crud();
 
 // Get admin info
 $admin_id = $_SESSION['admin_id'];
@@ -19,53 +22,53 @@ $admin_name = $_SESSION['admin_name'];
 $admin_role = $_SESSION['admin_role'];
 
 // Pagination logic
-$postsPerPage = 8;
+$commentsPerPage = 8;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
-$offset = ($page - 1) * $postsPerPage;
+$offset = ($page - 1) * $commentsPerPage;
 
-// Get total post count
-$totalPosts = $conn->query("SELECT COUNT(*) FROM posts")->fetchColumn();
-$totalPages = ceil($totalPosts / $postsPerPage);
+// Get total comment count
+$totalComments = $conn->query("SELECT COUNT(*) FROM post_comments")->fetchColumn();
+$totalPages = ceil($totalComments / $commentsPerPage);
 
-// Fetch posts for current page
-$stmt = $conn->prepare("SELECT * FROM view_all_posts LIMIT :limit OFFSET :offset");
-$stmt->bindValue(':limit', $postsPerPage, PDO::PARAM_INT);
+// Fetch comments for current page
+$stmt = $conn->prepare("SELECT * FROM view_all_comments ORDER BY Comment_Date DESC LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':limit', $commentsPerPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
-$all_posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$all_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Handle post deletion
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_post') {
+$crud = new Crud();
+
+// Handle delete comment
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['action']) && $_POST['action'] === 'delete_comment' &&
+    isset($_POST['comment_id'])
+) {
     header('Content-Type: application/json');
-    if (!isset($_POST['post_id'])) {
-        echo json_encode(['success' => false, 'error' => 'No post ID provided']);
-        exit();
-    }
-    $post_id = (int)$_POST['post_id'];
+    $comment_id = (int)$_POST['comment_id'];
     try {
-        $result = $crud->deletePost($post_id);
+        $result = $crud->deleteComment($comment_id);
         if ($result) {
             echo json_encode(['success' => true]);
         } else {
-            echo json_encode(['success' => false, 'error' => 'Failed to delete post']);
+            echo json_encode(['success' => false, 'error' => 'Failed to delete comment']);
         }
     } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'error' => 'Failed to delete post']);
+        echo json_encode(['success' => false, 'error' => 'Failed to delete comment']);
     }
     exit();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillSwap Admin - Manage Admins</title>
+    <title>SkillSwap Admin - Manage Comments</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
@@ -420,7 +423,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </a>
         </div>
     </div>
-
     <!-- Sidebar -->
     <div class="sidebar">
         <ul class="sidebar-menu">
@@ -451,13 +453,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </li>
             <?php endif; ?>
             <li>
-                <a href="ManageComments.php">
+                <a href="ManageComments.php" class="active">
                     <i class="fas fa-comments"></i>
                     Manage Comments
                 </a>
             </li>
             <li>
-                <a href="manageposts.php" class="active">
+                <a href="manageposts.php">
                     <i class="fas fa-thumbtack"></i>
                     Manage Posts
                 </a>
@@ -470,108 +472,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </li>
         </ul>
     </div>
-
     <!-- Main Content -->
     <div class="main-content">
         <div class="card">
-            <h2>All Posts</h2>     
+            <h2>All Comments</h2>
             <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Post ID</th>
-                        <th>User ID</th>
-                        <th>Community ID</th>
-                        <th>Content</th>
-                        <th>Created At</th>
-                        <!-- <th>Updated At</th> -->
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($all_posts as $post): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($post['Post_ID']) ?></td>
-                        <td><?= htmlspecialchars($post['User_ID']) ?></td>
-                        <td><?= htmlspecialchars($post['Community_ID']) ?></td>
-                        <td><?= htmlspecialchars($post['Content']) ?></td>
-                        <td><?= htmlspecialchars($post['Created_At']) ?></td>
-                        <!-- <td><?= htmlspecialchars($post['Updated_At']) ?></td> -->
-                        <td>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="action-btn restrict-btn" onclick="deletePost(<?= $post['Post_ID'] ?>)">Delete</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Comment ID</th>
+                            <th>Post ID</th>
+                            <th>User ID</th>
+                            <th>Community ID</th>
+                            <th>Comment Text</th>
+                            <th>Comment Date</th>
+                            <th>Parent Comment ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($all_comments as $comment): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($comment['Comment_ID'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($comment['Post_ID'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($comment['User_ID'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($comment['Community_ID'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($comment['Comment_Text'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($comment['Comment_Date'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($comment['Parent_Comment_ID'] ?? '') ?></td>
+                            <td>
+                                <button class="action-btn restrict-btn" onclick="deleteComment(<?= (int)$comment['Comment_ID'] ?>)">Delete</button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
             <!-- Pagination -->
             <div style="text-align:center; margin-top:20px;">
-            <nav aria-label="Page navigation example">
-              <ul class="pagination">
-                <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
-                  <a class="page-link" href="?page=<?php echo $page - 1; ?>">Previous</a>
-                </li>
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                  <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
-                    <a class="page-link<?php if ($i == $page) echo ' active'; ?>" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                  </li>
-                <?php endfor; ?>
-                <li class="page-item <?php if ($page >= $totalPages) echo 'disabled'; ?>">
-                  <a class="page-link" href="?page=<?php echo $page + 1; ?>">Next</a>
-                </li>
-              </ul>
-            </nav>
+                <nav aria-label="Page navigation example">
+                  <ul class="pagination">
+                    <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
+                      <a class="page-link" href="?page=<?php echo $page - 1; ?>">Previous</a>
+                    </li>
+                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                      <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
+                        <a class="page-link<?php if ($i == $page) echo ' active'; ?>" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                      </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?php if ($page >= $totalPages) echo 'disabled'; ?>">
+                      <a class="page-link" href="?page=<?php echo $page + 1; ?>">Next</a>
+                    </li>
+                  </ul>
+                </nav>
             </div>
         </div>
     </div>
-
     <script>
-    function deletePost(postId) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: 'This post will be permanently deleted!',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch('ManagePosts.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'action=delete_post&post_id=' + encodeURIComponent(postId)
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire('Deleted!', 'The post has been deleted.', 'success').then(() => location.reload());
-                    } else {
-                        Swal.fire('Error', data.error || 'Failed to delete post', 'error');
-                    }
-                });
-            }
-        });
-    }
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your account!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'logout.php';
+                }
+            });
+        }
 
-    function confirmLogout() {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "You will be logged out of your account!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, logout!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = 'logout.php';
-            }
-        });
-    }
+        function deleteComment(commentId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This comment will be permanently deleted!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('ManageComments.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'action=delete_comment&comment_id=' + encodeURIComponent(commentId)
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Deleted!', 'The comment has been deleted.', 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.error || 'Failed to delete comment', 'error');
+                        }
+                    });
+                }
+            });
+        }
     </script>
 </body>
-</html> 
+</html>

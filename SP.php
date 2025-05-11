@@ -210,6 +210,56 @@ class Crud {
     //     }
     // }    
 
+    public function editAnnouncement($announcement_id, $title, $content, $is_active) {
+        try {
+            $stmt = $this->conn->prepare("CALL EditAnnouncement(?, ?, ?, ?)");
+            $stmt->execute([$announcement_id, $title, $content, $is_active]);
+            return true;
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function setActiveAnnouncement($announcement_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL SetActiveAnnouncement(?)");
+            $stmt->execute([$announcement_id]);
+            return true;
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function deleteAnnouncement($announcement_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL DeleteAnnouncement(?)");
+            $stmt->execute([$announcement_id]);
+            return true;
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
+    public function deleteComment($comment_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL DeleteComment(?)");
+            $stmt->execute([$comment_id]);
+            return true;
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+    
+    public function deletePost($post_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL DeletePost(?)");
+            $stmt->execute([$post_id]);
+            return true;
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+
     public function getPendingCommunityRequests() {
         try {
             $stmt = $this->conn->prepare("SELECT * FROM communities WHERE status = 'Pending'");

@@ -27,6 +27,8 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKILLSWAP</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+        <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Great+Vibes:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --bg-color: #ffffff;
@@ -45,7 +47,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Great Vibes', cursive; /* Use the fancy font */
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -77,6 +79,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         .nav-container .logo {
             font-size: 1.8rem;
             font-weight: bold;
+            font-family: 'Great Vibes', cursive; /* Use the fancy font */
             color: var(--primary-color);
             display: flex;
             align-items: center;
@@ -302,6 +305,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         .header .logo {
             font-size: 30px;
             font-weight: bold;
+            font-family: 'Great Vibes', cursive; /* Use the fancy font */
         }
         .header nav {
             display: flex;
