@@ -21,7 +21,6 @@
             padding: 20px 50px;
             background-color: yellow;
             color: black;
-            font-family: 'Great Vibes', cursive; /* Use the fancy font */
             border: 2px solid black;
             box-shadow: 0 4px 8px rgba(87, 87, 87, 0.09);
             border-radius: 0 0 30px 30px;
@@ -181,10 +180,10 @@
             SkillSwap
         </div>
         <nav>
-            <a href="home.php">HOME</a>
-            <a href="login.php">LOGIN</a>
+            <a href="loginpagee.php">HOME</a>
+            <a href="loginpagee.php">LOGIN</a>
             <a href="about.php">ABOUT</a>
-            <a href="#contact">CONTACT</a>
+            <a href="contact.php">CONTACT</a>
             <!-- <a href="javascript:void(0)" onclick="toggleSidebar()">
                 <ion-icon name="person-outline"></ion-icon>
             </a>
