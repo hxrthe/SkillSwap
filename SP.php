@@ -190,25 +190,25 @@ class Crud {
         }
     }
 
-    public function approveCommunity($community_id) {
-        try {
-            $stmt = $this->conn->prepare("CALL approveCommunity(?)");
-            $stmt->execute([$community_id]);
-            return true;
-        } catch (PDOException $e) {
-            throw $e;
-        }
-    }
+    // public function approveCommunity($community_id) {
+    //     try {
+    //         $stmt = $this->conn->prepare("CALL approveCommunity(?)");
+    //         $stmt->execute([$community_id]);
+    //         return true;
+    //     } catch (PDOException $e) {
+    //         throw $e;
+    //     }
+    // }
     
-    public function declineCommunity($community_id) {
-        try {
-            $stmt = $this->conn->prepare("CALL declineCommunity(?)");
-            $stmt->execute([$community_id]);
-            return true;
-        } catch (PDOException $e) {
-            throw $e;
-        }
-    }    
+    // public function declineCommunity($community_id) {
+    //     try {
+    //         $stmt = $this->conn->prepare("CALL declineCommunity(?)");
+    //         $stmt->execute([$community_id]);
+    //         return true;
+    //     } catch (PDOException $e) {
+    //         throw $e;
+    //     }
+    // }    
 
     public function getPendingCommunityRequests() {
         try {
@@ -373,6 +373,42 @@ class Crud {
             if ($e->getCode() == '45000') {
                 throw new Exception('email_exists');
             }
+            throw $e;
+        }
+    }
+    public function requestCommunity($name, $topic, $interest1, $interest2, $interest3, $image_url) {
+        try {
+            $stmt = $this->conn->prepare("CALL RequestCommunity(?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $name,
+                $topic,
+                $interest1,
+                $interest2,
+                $interest3,
+                $image_url
+            ]);
+            // Consume all result sets to avoid errors
+            do { $stmt->fetch(); } while ($stmt->nextRowset());
+            return true;
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+    public function approveCommunity($community_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL ApproveCommunity(?)");
+            $stmt->execute([$community_id]);
+            return true;
+        } catch (PDOException $e) {
+            throw $e;
+        }
+    }
+    public function declineCommunity($community_id) {
+        try {
+            $stmt = $this->conn->prepare("CALL DeclineCommunity(?)");
+            $stmt->execute([$community_id]);
+            return true;
+        } catch (PDOException $e) {
             throw $e;
         }
     }

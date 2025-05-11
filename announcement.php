@@ -170,6 +170,8 @@ try {
     <title>SkillSwap Admin Dashboard</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
             margin: 0;
@@ -235,36 +237,37 @@ try {
         }
 
         .sidebar-menu {
-            list-style: none;
-        }
-
-        .sidebar-menu li {
-            margin-bottom: 10px;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            color: #333;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-menu a:hover {
-            background: #f0f2f5;
-        }
-
-        .sidebar-menu a.active {
-            background: #ffeb3b;
-            color: #000;
-        }
-
-        .sidebar-menu i {
-            font-size: 20px;
-        }
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.sidebar-menu li {
+    margin-bottom: 18px; /* Consistent spacing */
+}
+.sidebar-menu li:last-child {
+    margin-bottom: 0;
+}
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    color: #333;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 18px;
+}
+.sidebar-menu a:hover {
+    background: #f0f2f5;
+}
+.sidebar-menu a.active {
+    background: #ffeb3b;
+    color: #000;
+}
+.sidebar-menu i {
+    font-size: 20px;
+}
 
         .main-content {
             margin-left: 250px;
@@ -490,6 +493,27 @@ try {
             font-size: 20px;
             font-weight: bold;
         }
+
+        .create-announcement-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
+        }
+
+        .create-announcement-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -504,7 +528,7 @@ try {
                 <div class="admin-name"><?php echo htmlspecialchars($_SESSION['admin_name']); ?></div>
                 <div class="admin-role"><?php echo ucfirst($_SESSION['admin_role']); ?></div>
             </div>
-            <a href="logout.php" style="color: #666; text-decoration: none;">
+            <a href="#" onclick="confirmLogout()" style="color: #666; text-decoration: none;">
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </div>
@@ -538,21 +562,23 @@ try {
                     Announcement
                 </a>
             </li>
+            <?php if ($_SESSION['admin_role'] === 'super_admin'): ?>
             <li>
-                    <a href="manage_admins.php">
+                <a href="manage_admins.php">
                     <i class="fas fa-user-shield"></i>
                     Manage Admins
                 </a>
             </li>
+            <?php endif; ?>
             <li>
                 <a href="manageposts.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-thumbtack"></i>
                     Manage Posts
                 </a>
             </li>
             <li>
                 <a href="Community.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-users-cog"></i>
                     Community
                 </a>
             </li>
@@ -562,51 +588,13 @@ try {
     <!-- Main Content -->
     <div class="main-content">
         
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <button id="openModalBtn" class="action-btn view-btn" style="font-size:16px;">Create Announcement</button>
-        
-        </div>
-
-        <!-- Modal for Create Announcement -->
-        <div id="announcementModal" class="modal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100vw; height:100vh; overflow:auto; background:rgba(0,0,0,0.4);">
-            <div class="modal-content" style="background:#fff; margin:5% auto; padding:30px; border-radius:10px; width:100%; max-width:500px; position:relative;">
-                <span id="closeModalBtn" style="position:absolute; top:15px; right:20px; font-size:28px; font-weight:bold; color:#888; cursor:pointer;">&times;</span>
-                <h2 style="margin-bottom:20px;">Create New Announcement</h2>
-                <?php if (isset($_SESSION['error'])): ?>
-                    <div class="alert alert-error">
-                        <?php 
-                        echo $_SESSION['error']; 
-                        unset($_SESSION['error']); 
-                        ?>
-                    </div>
-                <?php endif; ?>
-                <?php if (isset($_SESSION['success'])): ?>
-                    <div class="alert alert-success">
-                        <?php 
-                        echo $_SESSION['success']; 
-                        unset($_SESSION['success']); 
-                        ?>
-                    </div>
-                <?php endif; ?>
-                <form method="POST">
-                    <input type="hidden" name="action" value="create">
-                    <div class="form-group">
-                        <label for="title">Title:</label>
-                        <input type="text" id="title" name="title" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="content">Content:</label>
-                        <textarea id="content" name="content" required></textarea>
-                    </div>
-                    <div style="margin-top: 20px;">
-                        <button type="submit" class="action-btn view-btn">Create Announcement</button>
-                    </div>
-                </form>
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Announcements</h2>
+                <button class="create-announcement-btn" onclick="openAnnouncementModal()">
+                    <i class="fas fa-plus"></i> Create Announcement
+                </button>
             </div>
-        </div>
-
-        <div class="card" style="margin-top: 20px;">
-            <h2>All Announcements</h2>
             <table style="width:100%; border-collapse:collapse;">
                 <thead>
                     <tr style="background:#f0f2f5;">
@@ -669,6 +657,44 @@ try {
                     ?>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Modal for Create Announcement -->
+        <div id="announcementModal" class="modal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100vw; height:100vh; overflow:auto; background:rgba(0,0,0,0.4);">
+            <div class="modal-content" style="background:#fff; margin:5% auto; padding:30px; border-radius:10px; width:100%; max-width:500px; position:relative;">
+                <span id="closeModalBtn" style="position:absolute; top:15px; right:20px; font-size:28px; font-weight:bold; color:#888; cursor:pointer;">&times;</span>
+                <h2 style="margin-bottom:20px;">Create New Announcement</h2>
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-error">
+                        <?php 
+                        echo $_SESSION['error']; 
+                        unset($_SESSION['error']); 
+                        ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="alert alert-success">
+                        <?php 
+                        echo $_SESSION['success']; 
+                        unset($_SESSION['success']); 
+                        ?>
+                    </div>
+                <?php endif; ?>
+                <form method="POST">
+                    <input type="hidden" name="action" value="create">
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="content">Content:</label>
+                        <textarea id="content" name="content" required></textarea>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button type="submit" class="action-btn view-btn">Create Announcement</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <!-- Edit Modal -->
@@ -739,12 +765,8 @@ try {
         }
 
         // Modal logic
-        const openModalBtn = document.getElementById('openModalBtn');
         const closeModalBtn = document.getElementById('closeModalBtn');
         const modal = document.getElementById('announcementModal');
-        openModalBtn.onclick = function() {
-            modal.style.display = 'block';
-        }
         closeModalBtn.onclick = function() {
             modal.style.display = 'none';
         }
@@ -785,6 +807,26 @@ try {
             if (event.target == document.getElementById('editModal')) {
                 document.getElementById('editModal').style.display = 'none';
             }
+        }
+
+        function openAnnouncementModal() {
+            document.getElementById('announcementModal').style.display = 'block';
+        }
+
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your account!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'logout.php';
+                }
+            });
         }
     </script>
 </body>

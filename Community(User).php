@@ -1,21 +1,47 @@
 <?php
 session_start();
-include 'menuu.php';
+
 require_once 'SkillSwapDatabase.php';
+require_once 'sp.php';
 
 // Create a new database instance
 $db = new Database();
 $conn = $db->getConnection();
+$crud = new Crud();
 
-// Fetch communities from database using PDO
-try {
-    $query = "SELECT * FROM communities WHERE status = 'Approved' ORDER BY created_at DESC";
-    $stmt = $conn->prepare($query);
-    $stmt->execute();
-    $communities = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $error = "Failed to fetch communities: " . $e->getMessage();
+
+// Handle AJAX request for community request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'])) {
+    header('Content-Type: application/json');
+    $name = $_POST['name'];
+    $topic = $_POST['topic'];
+    $interest1 = $_POST['interest1'];
+    $interest2 = $_POST['interest2'];
+    $interest3 = $_POST['interest3'];
+    $created_by = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null; // or set to null/0 if not logged in
+
+    // Handle image upload
+    $image_url = null;
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $targetDir = "uploads/communities/";
+        if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+        $fileName = uniqid() . "_" . basename($_FILES["image"]["name"]);
+        $targetFile = $targetDir . $fileName;
+        if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile)) {
+            $image_url = $targetFile;
+        }
+    }
+
+    try {
+        $crud->requestCommunity($name, $topic, $interest1, $interest2, $interest3, $image_url);
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
 }
+
+$communities = $conn->query("SELECT * FROM view_approvedcommunities")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -29,8 +55,7 @@ try {
             font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
-            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
-            background-size: cover;
+            background: linear-gradient(to right, #fdfd96, #fff);
             box-sizing: border-box;
         }
 
@@ -290,14 +315,16 @@ try {
         <?php endif; ?>
 
         <!-- Create Community Button -->
+        <?php if (isset($_SESSION['user_id'])): ?>
         <div class="create-community-container">
-            <button id="create-community-btn" onclick="openCreateCommunityModal()">Create Community</button>
+            <button id="create-community-btn" onclick="openCreateCommunityModal()">Request Community</button>
         </div>
+        <?php endif; ?>
 
         <!-- Search Bar -->
         <div class="search-bar-container">
             <ion-icon name="menu-outline"></ion-icon>
-            <input type="text" class="search-bar" id="community-search-bar" placeholder="Search community">
+            <input type="text" class="search-bar" placeholder="Search community">
             <ion-icon name="search-outline"></ion-icon>
         </div>
 
@@ -305,7 +332,7 @@ try {
         <div class="community-grid">
             <?php if (!empty($communities)): ?>
                 <?php foreach ($communities as $community): ?>
-                    <div class="community-card" data-name="<?php echo htmlspecialchars(strtolower($community['name'])); ?>">
+                    <div class="community-card">
                         <div class="actions">
                             <button>Report</button>
                             <button>Save</button>
@@ -337,7 +364,7 @@ try {
     <div id="create-community-modal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeCreateCommunityModal()">&times;</span>
-            <h2>Create Community</h2>
+            <h2>Request Community</h2>
             <form id="create-community-form">
                 <label for="community-name">Community Name:</label>
                 <input type="text" id="community-name" name="community-name" required>
@@ -357,7 +384,7 @@ try {
                 <label for="community-image">Community Picture:</label>
                 <input type="file" id="community-image" name="community-image" accept="image/*">
 
-                <button type="button" onclick="createCommunity()">Create</button>
+                <button type="button" onclick="requestCommunity()">Request</button>
             </form>
         </div>
     </div>
@@ -373,7 +400,7 @@ try {
             document.getElementById('create-community-modal').style.display = 'none';
         }
 
-        function createCommunity() {
+        function requestCommunity() {
             const communityName = document.getElementById('community-name').value.trim();
             const communityTopic = document.getElementById('community-topic').value.trim();
             const interest1 = document.getElementById('interest-1').value.trim();
@@ -396,37 +423,28 @@ try {
                 formData.append('image', communityImage);
             }
 
-            fetch('add_community.php', {
+            fetch('Community(User).php', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
+            .then(response => response.text())
+            .then(text => {
+                console.log('Raw response:', text);
+                let data = {};
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    alert('Invalid JSON response: ' + text);
+                    return;
+                }
                 if (data.success) {
-                    location.reload(); // Reload the page to show the new community
+                    alert('Community request submitted!');
+                    location.reload();
                 } else {
                     alert('Error: ' + data.error);
                 }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while creating the community.');
-            });
         }
-
-        document.getElementById('community-search-bar').addEventListener('input', function () {
-            const searchValue = this.value.toLowerCase().trim();
-            const communityCards = document.querySelectorAll('.community-card');
-
-            communityCards.forEach(card => {
-                const communityName = card.getAttribute('data-name');
-                if (communityName.includes(searchValue)) {
-                    card.style.display = 'block'; // Show the card
-                } else {
-                    card.style.display = 'none'; // Hide the card
-                }
-            });
-        });
     </script>
 </body>
 </html>

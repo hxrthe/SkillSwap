@@ -1,4 +1,3 @@
-
 <?php include 'menuu.php'; ?>
 <?php
 if (session_status() === PHP_SESSION_NONE) {
@@ -6,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once 'SkillSwapDatabase.php';
+require_once 'SP.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -13,18 +13,68 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Get current user's ID
+$currentUserId = $_SESSION['user_id'];
+
 $db = new Database();
 $conn = $db->getConnection();
 
+$crud = new Crud();
+
+$userPicData = $crud->getUserProfilePicture($_SESSION['user_id']);
+$userProfilePic = !empty($userPicData) ? 'data:image/jpeg;base64,' . base64_encode($userPicData) : 'default-profile.png';
+
+// For original poster (OP) profile picture
+$opPic = 'default-profile.png';
+if (!empty($post['User_ID'])) {
+    $opPicData = $crud->getUserProfilePicture($post['User_ID']);
+    if (!empty($opPicData)) {
+        $opPic = 'data:image/jpeg;base64,' . base64_encode($opPicData);
+    }
+}
+
+// Fetch logged-in user's profile picture
+try {
+    $query = "SELECT profile_picture FROM users WHERE user_id = :user_id";
+    $stmt = $conn->prepare($query);
+    $stmt->execute([':user_id' => $_SESSION['user_id']]);
+    $userPicData = $stmt->fetchColumn();
+    
+    $userProfilePic = !empty($userPicData) 
+        ? 'data:image/jpeg;base64,' . base64_encode($userPicData)
+        : 'default-profile.png';
+} catch (PDOException $e) {
+    $userProfilePic = 'default-profile.png';
+}
+
+
 // Fetch requests where the logged-in user is the receiver
-$stmt = $conn->prepare("SELECT r.*, u.First_Name AS sender_name FROM requests r JOIN users u ON r.sender_id = u.User_ID WHERE r.receiver_id = :receiver_id ORDER BY r.created_at DESC");
+$stmt = $conn->prepare("
+    SELECT r.id, r.message, r.status, r.created_at, u.User_ID AS sender_id, u.First_Name AS sender_name, u.Last_Name AS sender_last_name, u.Profile_Picture
+    FROM requests r
+    JOIN users u ON u.User_ID = r.sender_id
+    WHERE r.receiver_id = :receiver_id
+    AND r.status = 'pending'
+    ORDER BY r.created_at DESC
+");
 $stmt->execute([':receiver_id' => $_SESSION['user_id']]);
 $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+error_log("Incoming Requests: " . print_r($requests, true)); // Debugging
+
 // Fetch sent requests
-$stmt = $conn->prepare("SELECT r.*, u.First_Name AS receiver_name FROM requests r JOIN users u ON r.receiver_id = u.User_ID WHERE r.sender_id = :sender_id ORDER BY r.created_at DESC");
-$stmt->execute([':sender_id' => $_SESSION['user_id']]);
+$stmt = $conn->prepare("
+    SELECT mr.receiver_id, u.First_Name, u.Last_Name, u.Profile_Picture, mr.created_at
+    FROM match_requests mr
+    JOIN users u ON u.User_ID = mr.receiver_id
+    WHERE mr.sender_id = :current_user_id
+    AND mr.status = 'pending'
+    ORDER BY mr.created_at DESC
+");
+$stmt->execute([':current_user_id' => $_SESSION['user_id']]);
 $sentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+error_log("Sent Requests: " . print_r($sentRequests, true));
 
 // Fetch ongoing requests
 $stmt = $conn->prepare("SELECT r.*, u.First_Name AS receiver_name FROM requests r JOIN users u ON r.receiver_id = u.User_ID WHERE (r.sender_id = :user_id OR r.receiver_id = :user_id) AND r.status = 'accepted' ORDER BY r.created_at DESC");
@@ -113,6 +163,13 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 15px;
             margin-bottom: 10px;
             background-color: #f9f9f9;
+        }
+
+        .request img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
         }
 
         .request h3 {
@@ -281,43 +338,27 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Tab Content -->
     <div id="requests" class="tab-content">
-        <script>
-            function fetchIncomingRequests() {
-                fetch('fetch_incoming_requests.php')
-                    .then(response => response.json())
-                    .then(incomingRequests => {
-                        const requestsTab = document.getElementById('requests');
-                        requestsTab.innerHTML = ''; // Clear existing content
-
-                        if (incomingRequests.error) {
-                            requestsTab.innerHTML = `<p>${incomingRequests.error}</p>`;
-                            return;
-                        }
-
-                        if (incomingRequests.length === 0) {
-                            requestsTab.innerHTML = '<p>No incoming requests found.</p>';
-                            return;
-                        }
-
-                        incomingRequests.forEach(request => {
-                            const requestElement = document.createElement('div');
-                            requestElement.className = 'request';
-                            requestElement.innerHTML = `
-                                <h3>Request from ${request.sender_name}</h3>
-                                <p>${request.message}</p>
-                                <p><strong>Status:</strong> ${request.status}</p>
-                                <div class="request-actions">
-                                    <button class="accept-button" onclick="acceptRequest(${request.id}); showTab('ongoing');">Accept</button>
-                                    <button class="decline-button" onclick="declineRequest(${request.id})">Decline</button>
-                                </div>`;
-                            requestsTab.appendChild(requestElement);
-                        });
-                    })
-                    .catch(error => console.error('Error fetching incoming requests:', error));
-            }
-
-            document.addEventListener('DOMContentLoaded', fetchIncomingRequests);
-        </script>
+        <h2>Incoming Requests</h2>
+        <?php if (!empty($requests)): ?>
+            <?php foreach ($requests as $request): ?>
+                <div class="request">
+                    <div class="profile-image">
+                        <img src="<?php echo !empty($user['profile_picture']) 
+                            ? ('data:image/jpeg;base64,' . base64_encode($user['profile_picture'])) 
+                            : 'default-profile.png'; ?>" alt="Profile Picture">
+                    </div>
+                    <h3>Request from <?php echo htmlspecialchars($request['sender_name'] . ' ' . $request['sender_last_name']); ?></h3>
+                    <p><?php echo htmlspecialchars($request['message'] ?? 'No message provided'); ?></p>
+                    <p><strong>Status:</strong> <?php echo htmlspecialchars($request['status']); ?></p>
+                    <div class="request-actions">
+                        <button class="accept-button" onclick="acceptRequest(<?php echo $request['id']; ?>)">Accept</button>
+                        <button class="decline-button" onclick="declineRequest(<?php echo $request['id']; ?>)">Decline</button>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <p>No incoming requests found.</p>
+        <?php endif; ?>
     </div>
 
     <div id="sent" class="tab-content">
@@ -346,9 +387,7 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             requestElement.className = 'request';
                             requestElement.innerHTML = `
                                 <h3>Request to ${request.receiver_name}</h3>
-                                <p>${request.message}</p>
-                                <p><strong>Status:</strong> ${request.status}</p>
-                                <p><strong>Appointment:</strong> ${request.appointment_date || 'Not set'}</p>
+                                <p>Request sent on: ${request.created_at}</p>
                             `;
                             sentTab.appendChild(requestElement);
                         });
@@ -358,13 +397,31 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             document.addEventListener('DOMContentLoaded', fetchSentRequests);
         </script>
+        <div class="sent-requests">
+            <h2>Sent Requests</h2>
+            <?php if (!empty($sentRequests)): ?>
+                <?php foreach ($sentRequests as $request): ?>
+                    <div class="request-item">
+                        <div class="profile-image">
+                            <img src="serve_profile_picture.php?user_id=<?php echo htmlspecialchars($request['receiver_id']); ?>" alt="Profile Picture">
+                        </div>
+                        <div class="info">
+                            <h3><?php echo htmlspecialchars($request['First_Name'] . ' ' . $request['Last_Name']); ?></h3>
+                            <p>Request sent on: <?php echo htmlspecialchars($request['created_at']); ?></p>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>No sent requests.</p>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div id="ongoing" class="tab-content">
         <?php if (count($ongoingRequests) > 0): ?>
             <?php foreach ($ongoingRequests as $request): ?>
                 <div class="request">
-                    <h3>Ongoing with <?php echo htmlspecialchars($request['receiver_name']); ?></h3>
+                    <h3>Ongoing with <?php echo htmlspecialchars($user['First_Name']); ?></h3>
                     <p><?php echo htmlspecialchars($request['message']); ?></p>
 
                     <?php if (!$request['schedule_confirmed']): ?>
@@ -479,55 +536,24 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         function acceptRequest(requestId) {
-    if (confirm('Are you sure you want to accept this request?')) {
-        fetch('accept_request.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `request_id=${requestId}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Request accepted successfully!');
-                showTab('ongoing'); // Switch to "Ongoing" tab
-                fetchOngoingRequests(); // Fetch ongoing requests dynamically
-            } else {
-                alert('Error: ' + data.error);
+            if (confirm('Are you sure you want to accept this request?')) {
+                fetch('accept_request.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `request_id=${requestId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Request accepted successfully!');
+                        location.reload(); // Reload the page to update the Requests tab
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
             }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-}
-
-
-function fetchOngoingRequests() {
-    fetch('fetch_ongoing_requests.php')
-        .then(response => response.json())
-        .then(ongoingRequests => {
-            const ongoingTab = document.getElementById('ongoing');
-            ongoingTab.innerHTML = ''; 
-
-            if (ongoingRequests.length === 0) {
-                ongoingTab.innerHTML = '<p>No ongoing requests found.</p>';
-                return;
-            }
-
-            ongoingRequests.forEach(request => {
-                const requestElement = document.createElement('div');
-                requestElement.className = 'request';
-                requestElement.innerHTML = `
-                    <h3>Ongoing with ${request.other_name}</h3>
-                    <p>Matching skills in progress...</p>
-                    <button class="chat-button" onclick="proceedToChat(${request.id})">Chat</button>
-                `;
-                ongoingTab.appendChild(requestElement);
-            });
-        })
-        .catch(error => console.error('Error fetching ongoing requests:', error));
-}
-
-
-
+        }
 
         function loadRequests() {
             fetch('fetch_requests.php')
@@ -574,6 +600,65 @@ function fetchOngoingRequests() {
         }
 
         document.querySelector('.tab[onclick="showTab(\'requests\')"]').addEventListener('click', loadRequests);
+
+        function fetchIncomingRequests() {
+            fetch(`fetch_incoming_requests.php?timestamp=${new Date().getTime()}`)
+                .then(response => response.json())
+                .then(incomingRequests => {
+                    console.log('Incoming Requests:', incomingRequests); // Debugging: Log the response
+
+                    const requestsTab = document.getElementById('requests');
+                    requestsTab.innerHTML = ''; // Clear existing content
+
+                    if (incomingRequests.error) {
+                        requestsTab.innerHTML = `<p>${incomingRequests.error}</p>`;
+                        return;
+                    }
+
+                    if (incomingRequests.length === 0) {
+                        requestsTab.innerHTML = '<p>No incoming requests found.</p>';
+                        return;
+                    }
+
+                    incomingRequests.forEach(request => {
+                        const requestElement = document.createElement('div');
+                        requestElement.className = 'request';
+                        requestElement.innerHTML = `
+                            <div class="profile-image">
+                                <img src="serve_profile_picture.php?user_id=${request.sender_id}" alt="Profile Picture">
+                            </div>
+                            <h3>Request from ${request.sender_name} ${request.sender_last_name}</h3>
+                            <p>${request.message || 'No message provided'}</p>
+                            <p><strong>Status:</strong> ${request.status}</p>
+                            <div class="request-actions">
+                                <button class="accept-button" onclick="acceptRequest(${request.id})">Accept</button>
+                                <button class="decline-button" onclick="declineRequest(${request.id})">Decline</button>
+                            </div>`;
+                        requestsTab.appendChild(requestElement);
+                    });
+                })
+                .catch(error => console.error('Error fetching incoming requests:', error));
+        }
+
+        function declineRequest(requestId) {
+            if (confirm('Are you sure you want to decline this request?')) {
+                fetch('decline_request.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `request_id=${requestId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Request declined successfully!');
+                        location.reload(); // Reload the page to update the Requests tab
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
     </script>
 </body>
 </html>

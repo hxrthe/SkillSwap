@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'SkillSwapDatabase.php';
+require_once 'SP.php';
 
 // Get current user's ID
 $currentUserId = $_SESSION['user_id'];
@@ -9,19 +10,9 @@ $currentUserId = $_SESSION['user_id'];
 $db = new Database();
 $conn = $db->getConnection();
 
-// Get all users except current user
-try {
-    // First try to create the user_skills table if it doesn't exist
-    $conn->exec("CREATE TABLE IF NOT EXISTS user_skills (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        user_id INT NOT NULL,
-        skill_name VARCHAR(255) NOT NULL,
-        skill_type VARCHAR(20) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(User_ID)
-    )");
+$crud = new Crud();
 
-    // Get all users except current user
+try {
     $stmt = $conn->prepare("
         SELECT u.*, 
                (SELECT GROUP_CONCAT(skill_name) 
@@ -33,64 +24,68 @@ try {
         FROM users u
         WHERE u.User_ID != :current_user_id
         AND u.User_ID NOT IN (
-            SELECT DISTINCT CASE 
-                WHEN sender_id = :current_user_id THEN request_id 
-                ELSE sender_id 
-            END as matched_user
-            FROM messages 
-            WHERE sender_id = :current_user_id OR request_id = :current_user_id
+            SELECT DISTINCT receiver_id
+            FROM match_requests
+            WHERE sender_id = :current_user_id
         )
         ORDER BY u.User_ID DESC
     ");
     $stmt->execute([':current_user_id' => $currentUserId]);
     $unmatchedUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Debug: Log the number of users found
-    error_log("Found " . count($unmatchedUsers) . " unmatched users");
-
-    // Debug: Log the first user's data if any found
-    if (!empty($unmatchedUsers)) {
-        error_log("First user data: " . print_r($unmatchedUsers[0], true));
-    }
-
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());
-    // If there's any error, show empty skills
-    $stmt = $conn->prepare("
-        SELECT u.*, 
-               '' as can_share_skills,
-               '' as want_to_learn_skills
-        FROM users u
-        WHERE u.User_ID != :current_user_id
-        AND u.User_ID NOT IN (
-            SELECT DISTINCT CASE 
-                WHEN sender_id = :current_user_id THEN request_id 
-                ELSE sender_id 
-            END as matched_user
-            FROM messages 
-            WHERE sender_id = :current_user_id OR request_id = :current_user_id
-        )
-        ORDER BY u.User_ID DESC
-    ");
-    $stmt->execute([':current_user_id' => $currentUserId]);
-    $unmatchedUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $unmatchedUsers = [];
 }
 
-$stmt = $conn->prepare("SELECT GROUP_CONCAT(skill_name) as current_skills FROM user_skills WHERE user_id = :user_id");
-$stmt->execute([':user_id' => $currentUserId]);
-$currentSkills = $stmt->fetch(PDO::FETCH_ASSOC)['current_skills'];
+$userPicData = $crud->getUserProfilePicture($_SESSION['user_id']);
+$userProfilePic = !empty($userPicData) ? 'data:image/jpeg;base64,' . base64_encode($userPicData) : 'default-profile.png';
+
+// For original poster (OP) profile picture
+$opPic = 'default-profile.png';
+if (!empty($post['User_ID'])) {
+    $opPicData = $crud->getUserProfilePicture($post['User_ID']);
+    if (!empty($opPicData)) {
+        $opPic = 'data:image/jpeg;base64,' . base64_encode($opPicData);
+    }
+}
+
+// Fetch logged-in user's profile picture
+try {
+    $query = "SELECT profile_picture FROM users WHERE user_id = :user_id";
+    $stmt = $conn->prepare($query);
+    $stmt->execute([':user_id' => $_SESSION['user_id']]);
+    $userPicData = $stmt->fetchColumn();
+    
+    $userProfilePic = !empty($userPicData) 
+        ? 'data:image/jpeg;base64,' . base64_encode($userPicData)
+        : 'default-profile.png';
+} catch (PDOException $e) {
+    $userProfilePic = 'default-profile.png';
+}
+
+$stmt = $conn->prepare("
+    SELECT u.First_Name, u.Last_Name, u.Profile_Picture, mr.created_at
+    FROM match_requests mr
+    JOIN users u ON u.User_ID = mr.receiver_id
+    WHERE mr.sender_id = :current_user_id
+    AND mr.status = 'pending'
+    ORDER BY mr.created_at DESC
+");
+$stmt->execute([':current_user_id' => $_SESSION['user_id']]);
+$sentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt = $conn->prepare("
+    SELECT u.First_Name, u.Last_Name, u.Profile_Picture, mr.created_at
+    FROM match_requests mr
+    JOIN users u ON u.User_ID = mr.sender_id
+    WHERE mr.receiver_id = :current_user_id
+    AND mr.status = 'pending'
+    ORDER BY mr.created_at DESC
+");
+$stmt->execute([':current_user_id' => $_SESSION['user_id']]);
+$receivedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include 'menuu.php';
-
-error_log("Number of unmatched users: " . count($unmatchedUsers));
-if (!empty($unmatchedUsers)) {
-    error_log("First unmatched user: " . print_r($unmatchedUsers[0], true));
-} else {
-    error_log("No unmatched users found.");
-}
-
-error_log("Users data passed to frontend: " . json_encode($unmatchedUsers));
-
 ?>
 
 <!DOCTYPE html>
@@ -101,7 +96,7 @@ error_log("Users data passed to frontend: " . json_encode($unmatchedUsers));
     <title>Find Matches</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <style>
-        /* :root {
+        :root {
             --bg-color: #ffffff;
             --text-color: #333333;
             --card-bg: #f8f9fa;
@@ -115,15 +110,15 @@ error_log("Users data passed to frontend: " . json_encode($unmatchedUsers));
             --card-bg: #2d2d2d;
             --border-color: #444444;
             --primary-color: #66BB6A;
-        } */
+        }
 
         body {
             font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 0;
-            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
-            background-size: cover;
-            box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .container {
@@ -132,95 +127,32 @@ error_log("Users data passed to frontend: " . json_encode($unmatchedUsers));
             padding: 20px;
         }
 
-        .search-bar-container {
+        .user-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 3 users per row */
+            gap: 20px;
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+
+        .user-item {
             display: flex;
-            align-items: center;
-            background-color: var(--card-bg);
-            border-radius: 30px;
-            padding: 10px 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .search-bar {
-            flex: 1;
-            border: none;
-            outline: none;
-            font-size: 16px;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 8px;
-            border-radius: 25px;
-        }
-
-        .toggle-buttons {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-
-        .toggle-buttons button {
-            background-color: var(--card-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 0 10px;
-            transition: all 0.3s ease;
-        }
-
-        .toggle-buttons button.active {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            color: white;
-        }
-
-        .card-container {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            height: auto;
-            margin: 0 auto;
-            overflow: visible;
-            padding: 20px 0;
-        }
-
-        .card {
-            display: block;
-            visibility: visible;
+            flex-direction: column;
+            justify-content: space-between;
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            width: 100%;
-            min-height: 200px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            overflow: hidden;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             position: relative;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-        }
-
-        .card-content {
-            display: flex;
-            align-items: flex-start;
-            gap: 30px;
-            width: 100%;
         }
 
         .profile-image {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             overflow: hidden;
-            flex-shrink: 0;
-            border: 3px solid var(--card-bg);
+            margin-bottom: 10px;
         }
 
         .profile-image img {
@@ -229,38 +161,25 @@ error_log("Users data passed to frontend: " . json_encode($unmatchedUsers));
             object-fit: cover;
         }
 
-        .info {
-            flex: 1;
-            min-width: 0;
-        }
-
         .info h3 {
             margin: 0;
-            font-size: 24px;
+            font-size: 20px;
             color: var(--primary-color);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .info p {
             margin: 5px 0;
             color: var(--text-color);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .skills {
-            margin-top: 15px;
-            width: 100%;
+            margin-top: 10px;
         }
 
         .skill-list {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            width: 100%;
         }
 
         .skill-tag {
@@ -269,1348 +188,136 @@ error_log("Users data passed to frontend: " . json_encode($unmatchedUsers));
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 14px;
-            white-space: nowrap;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        @media (max-width: 768px) {
-            .card-content {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-
-            .profile-image {
-                width: 80px;
-                height: 80px;
-            }
-
-            .info h3 {
-                font-size: 20px;
-                text-align: center;
-            }
-
-            .skill-list {
-                justify-content: center;
-            }
-
-            .skill-tag {
-                font-size: 13px;
-                padding: 4px 8px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .card {
-                padding: 15px;
-            }
-
-            .info h3 {
-                font-size: 18px;
-            }
-
-            .skill-tag {
-                font-size: 12px;
-                padding: 3px 6px;
-            }
-        }
-
-        .accept-button:hover, .decline-button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .tab-content {
-            display: none;
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .match-request {
+        .actions {
             display: flex;
-            align-items: center;
+            justify-content: flex-end;
             gap: 10px;
-            padding: 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .match-request:last-child {
-            border-bottom: none;
-        }
-
-        .match-request img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .match-request .info {
-            flex: 1;
-        }
-
-        .match-request .info h4 {
-            margin: 0;
-            font-size: 16px;
-            color: var (--text-color);
-        }
-
-        .match-request .info p {
-            margin: 5px 0 0;
-            font-size: 14px;
-            color: var(--text-color);
-        }
-
-                .profile-image {
-                    width: 80px;
-                    height: 80px;
-                }
-
-                .info h3 {
-                    font-size: 20px;
-                    text-align: center;
-                }
-
-                .skill-list {
-                    justify-content: center;
-                }
-
-                .skill-tag {
-                    font-size: 13px;
-                    padding: 4px 8px;
-                }
-            
-
-            @media (max-width: 480px) {
-                .card {
-                    padding: 15px;
-                }
-
-                .info h3 {
-                    font-size: 18px;
-                }
-
-                .skill-tag {
-                    font-size: 12px;
-                    padding: 3px 6px;
-                }
-            }
-
-            .accept-button:hover, .decline-button:hover {
-                transform: scale(1.1);
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            }
-
-            .tab-content {
-                display: none;
-                background-color: var(--card-bg);
-                padding: 20px;
-                border-radius: 10px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
-
-            .tab-content.active {
-                display: block;
-            }
-
-            .match-request {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 15px;
-                border-bottom: 1px solid var(--border-color);
-            }
-
-            .match-request:last-child {
-                border-bottom: none;
-            }
-
-            .match-request img {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                object-fit: cover;
-            }
-
-            .match-request .info {
-                flex: 1;
-            }
-
-            .match-request .info h4 {
-                margin: 0;
-                font-size: 16px;
-                color: var(--text-color);
-            }
-
-            .match-request .info p {
-                margin: 5px 0 0;
-                font-size: 14px;
-                color: var(--text-color);
-            }
-
-            .match-request .actions {
-                display: flex;
-                gap: 10px;
-            }
-
-            .accept-button, .decline-button {
-                position: absolute;
-                bottom: -40px;
-                width: 60px;
-                height: 60px;
-                border-radius: 50%;
-                border: none;
-                cursor: pointer;
-                font-size: 30px;
-                transition: all 0.3s ease;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            }
-
-            .accept-button {
-                right: 20px;
-                background-color: #4CAF50;
-                color: white;
-            }
-
-            .decline-button {
-                left: 20px;
-                background-color: #f44336;
-                color: white;
-            }
-
-            .accept-button:hover, .decline-button:hover {
-                transform: scale(1.1);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-            }
-
-            @media (max-width: 768px) {
-                .accept-button, .decline-button {
-                    width: 50px;
-                    height: 50px;
-                    font-size: 24px;
-                    bottom: -30px;
-                }
-            }
-
-            @media (max-width: 480px) {
-                .accept-button, .decline-button {
-                    width: 45px;
-                    height: 45px;
-                    font-size: 20px;
-                    bottom: -25px;
-                }
-            }
-
-            .search-bar-container {
-                display: flex;
-                align-items: center;
-                background-color: #fff;
-                border-radius: 30px;
-                padding: 10px 20px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                margin-bottom: 20px;
-                font-size: 24px;
-                color: #666;
-                margin-right: 10px;
-            }
-
-            .search-bar {
-                flex: 1;
-                border: none;
-                outline: none;
-                font-size: 16px;
-            }
-
-            .toggle-buttons {
-                display: flex;
-                justify-content: center;
-                margin-bottom: 20px;
-            }
-
-            .toggle-buttons button {
-                background-color: #fff;
-                border: 2px solid #ddd;
-                border-radius: 20px;
-                padding: 10px 20px;
-                font-size: 16px;
-                cursor: pointer;
-                margin: 0 10px;
-                transition: all 0.3s ease;
-            }
-
-            .toggle-buttons button.active {
-                background-color: #fdfd96;
-                border-color: #fdfd96;
-                color: #000;
-            }
-
-            .card-container {
-                position: relative;
-                width: 600px;
-                height: 550px;
-                margin: 0 auto;
-            }
-
-            .card {
-                display: block !important; /* Ensure the cards are displayed */
-                visibility: visible !important; /* Ensure the cards are visible */
-                background-color: #fff; /* Add a background color for visibility */
-                border: 1px solid #ddd; /* Add a border for visibility */
-                padding: 20px;
-                margin-bottom: 20px;
-                position: absolute;
-                width: 100%;
-                height: 100%;
-                border-radius: 10px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                transition: transform 0.5s ease, opacity 0.5s ease;
-            }
-
-            .card img {
-                width: 100%;
-                height: 300px;
-                border-radius: 10px;
-                object-fit: cover;
-            }
-
-            .card .actions {
-                display: flex;
-                justify-content: space-between;
-                margin-top: 10px;
-            }
-
-            .card .actions button {
-                background-color: #fdfd96;
-                border: none;
-                border-radius: 5px;
-                padding: 10px 20px;
-                cursor: pointer;
-                font-size: 14px;
-            }
-
-            .card .actions button:hover {
-                background-color: #fce76c;
-            }
-
-            .card .info {
-                margin-top: 10%;
-            }
-
-            .card .info h3 {
-                margin: 0;
-                font-size: 18px;
-            }
-
-            .card .info p {
-                margin: 5px 0;
-                font-size: 14px;
-                color: #666;
-            }
-
-            .card .info .offer {
-                display: flex;
-                justify-content: space-between;
-                margin-top: 10%;
-            }
-
-            .card .info .offer div {
-                background-color: #fdfd96;
-                padding: 5px 10px;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-
-            .card .action-icons {
-                position: relative;
-                width: 100%;
-                display: flex;
-                justify-content: space-between;
-                padding: 0 40px; /* Increased padding from 20px to 40px */
-                margin-top: 30px; /* Increased margin from 20px to 30px */
-                gap: 30px; /* Increased gap from 20px to 30px */
-            }
-
-            .card .action-icons .icon {
-                font-size: 32px; /* Increased font size from 24px to 32px */
-                cursor: pointer;
-                transition: transform 0.3s ease;
-            }
-
-            .card .action-icons .heart {
-                color: #ff4444;
-                margin-right: 60px;
-            }
-
-            .card .action-icons .heart:hover {
-                transform: scale(1.2);
-            }
-
-            .card .action-icons .x {
-                color: #444;
-            }
-
-            .card .action-icons .x:hover {
-                transform: scale(1.2);
-            }
-
-            @media (max-width: 600px) {
-                .container {
-                    padding: 10px;
-                }
-
-                .search-bar-container {
-                    flex-direction: column;
-                    align-items: stretch;
-                    padding: 15px;
-                }
-
-                .search-bar {
-                    margin-bottom: 10px;
-                }
-
-                .toggle-buttons {
-                    margin-bottom: 15px;
-                }
-
-                .card {
-                    padding: 15px;
-                }
-
-                .card-content {
-                    flex-direction: column;
-                    align-items: center;
-                    text-align: center;
-                }
-
-                .profile-image {
-                    width: 80px;
-                    height: 80px;
-                }
-
-                .info h3 {
-                    font-size: 20px;
-                }
-
-                .skill-list {
-                    justify-content: center;
-                }
-            }
-            body {
-                font-family: 'Poppins', sans-serif;
-                margin: 0;
-                padding: 0;
-                background: linear-gradient(to right, #fdfd96, #fff);
-                box-sizing: border-box;
-            }
-
-            .container {
-                padding: 20px;
-            }
-
-            .search-bar-container {
-                display: flex;
-            .search-bar {
-                margin-bottom: 10px;
-            }
-
-            .toggle-buttons {
-                margin-bottom: 15px;
-            }
-
-            .card {
-                padding: 15px;
-            }
-
-            .card-content {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-
-            .profile-image {
-                width: 80px;
-                height: 80px;
-            }
-
-            .info h3 {
-                font-size: 20px;
-            }
-
-            .skill-list {
-                justify-content: center;
-            }
-        }
-        body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(to right, #fdfd96, #fff);
-            box-sizing: border-box;
-        }
-
-        .container {
-            padding: 20px;
-        }
-
-        .search-bar-container {
-            display: flex;
-            align-items: center;
-            background-color: #fff;
-            border-radius: 30px;
-            padding: 10px 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            font-size: 24px;
-            color: #666;
-            margin-right: 10px;
-        }
-
-        .search-bar {
-            flex: 1;
-            border: none;
-            outline: none;
-            font-size: 16px;
-        }
-
-        .toggle-buttons {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-
-        .toggle-buttons button {
-            background-color: #fff;
-            border: 2px solid #ddd;
-            border-radius: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 0 10px;
-            transition: all 0.3s ease;
-        }
-
-        .toggle-buttons button.active {
-            background-color: #fdfd96;
-            border-color: #fdfd96;
-            color: #000;
-        }
-
-        .card-container {
-            position: relative;
-            width: 600px;
-            height: 550px;
-            margin: 0 auto;
-        }
-
-        .card {
-            display: block !important; /* Ensure the cards are displayed */
-            visibility: visible !important; /* Ensure the cards are visible */
-            background-color: #fff; /* Add a background color for visibility */
-            border: 1px solid #ddd; /* Add a border for visibility */
-            padding: 20px;
-            margin-bottom: 20px;
-            position: absolute;
-            width: 100%;
-            height: 60%;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.5s ease, opacity 0.5s ease;
-        }
-
-        .card img {
-            width: 100%;
-            height: 300px;
-            border-radius: 10px;
-            object-fit: cover;
-        }
-
-        .card .actions {
-            display: flex;
-            justify-content: space-between;
             margin-top: 10px;
-        }
-
-        .card .actions button {
-            background-color: #fdfd96;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .card .actions button:hover {
-            background-color: #fce76c;
-        }
-
-        .card.action-buttons {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-            z-index: 1;
-        }
-
-        .action-buttons button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .nope-btn {
-            background-color: #ff4444;
-            color: white;
         }
 
         .match-btn {
             background-color: #4CAF50;
             color: white;
-        }
-
-        .action-buttons button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .card .action-icons .x {
-            color: #444;
-        }
-
-        .card .action-icons .heart {
-            color: #ff4444;
-            margin-right: 60px;
-        }
-
-        .card .action-icons .heart:hover {
-            transform: scale(1.2);
-        }
-
-     .card .info .offer div {
-            background-color: #fdfd96;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .card .action-icons {
-            position: relative;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 30px;
-            margin-top: 25px;
-            gap: 25px;
-        }
-
-        .card .action-icons .icon {
-            font-size: 28px;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-        }
-
-        .card .action-icons .heart {
-            color: #ff4444;
-            margin-right: 60px;
-        }
-
-        .card .action-icons .heart:hover {
-            transform: scale(1.2);
-        }
-
-        .card .action-icons .x {
-            color: #444;
-        }
-
-        .card .action-icons .x:hover {
-            transform: scale(1.2);
-        }
-
-        .card:nth-child(1) {
-            transform: rotate(0deg); /* Ensure the first card is not rotated */
-        }
-
-        .card:nth-child(2) {
-            transform: rotate(-5deg); /* Rotate the second card slightly to the left */
-        }
-
-        .card:nth-child(3) {
-            transform: rotate(5deg); /* Rotate the third card slightly to the right */
-        }
-
-        .accept-button, .decline-button {
-            display: inline-block; /* Ensure buttons are displayed */
-            background-color: #4CAF50; /* Accept button color */
-            color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            margin-right: 10px;
-            transition: background-color 0.3s ease;
+            font-size: 14px;
         }
 
-        .decline-button {
-            background-color: #f44336; /* Decline button color */
-        }
-
-        .accept-button:hover {
+        .match-btn:hover {
             background-color: #45a049;
         }
 
-        .decline-button:hover {
+        .no-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .no-btn:hover {
             background-color: #d32f2f;
-        }
-
-        /* Responsive Styles */
-        @media screen and (max-width: 1024px) {
-            .card-container {
-                width: 90%;
-                height: auto;
-            }
-
-            .card img {
-                height: 250px;
-            }
-
-            .card .info h3 {
-                font-size: 16px;
-            }
-
-            .card .info p {
-                font-size: 12px;
-            }
-
-            .card .info .offer div {
-                font-size: 12px;
-            }
-        }
-
-        @media screen and (max-width: 768px) {
-            .search-bar-container {
-                width: 80%;
-            }
-
-            .card-container {
-                width: 100%;
-                height: auto;
-            }
-
-            .card img {
-                height: 200px;
-            }
-
-            .card .info h3 {
-                font-size: 14px;
-            }
-
-            .card .info p {
-                font-size: 12px;
-            }
-
-            .card .info .offer div {
-                font-size: 12px;
-            }
-
-            .card .nope,
-            .card .match {
-                font-size: 14px;
-            }
-        }
-
-        @media screen and (max-width: 400px) {
-            .search-bar-container {
-                width: 100%;
-                padding: 5px 10px;
-            }
-
-            .card-container {
-                width: 100%;
-                height: auto;
-            }
-
-            .card img {
-                height: 150px;
-            }
-
-            .card .info h3 {
-                font-size: 12px;
-            }
-
-            .card .info p {
-                font-size: 10px;
-            }
-
-            .card .info .offer div {
-                font-size: 10px;
-            }
-
-            .card .nope,
-            .card .match {
-                font-size: 12px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Search Bar -->
-        <div class="search-bar-container">
-            <ion-icon name="menu-outline"></ion-icon>
-            <input type="text" class="search-bar" placeholder="Search barters">
-            <ion-icon name="search-outline"></ion-icon>
-        </div>
-
-        <!-- Toggle Buttons -->
-        <div class="toggle-buttons">
-            <button class="active" onclick="filterBarters('online')">Online Barters</button>
-        </div>
-
-        <!-- Card Container -->
-        <div class="card-container" id="card-container">
-            <!-- Cards will be dynamically added here -->
-        </div>
-
-        <div id="requests" class="tab-content">
-            <!-- Requests will be dynamically added here -->
-        </div>
-    </div>
-
-    <script>
-        // Pass PHP data to JavaScript
-        const usersData = <?php echo json_encode($unmatchedUsers); ?>;
-        const currentUserId = <?php echo json_encode($currentUserId); ?>;
-
-        // Initialize swipe functionality
-        function initializeSwipe() {
-            const cards = document.querySelectorAll('.card');
-            
-            if (cards.length === 0) {
-                console.log('No cards to initialize swipe functionality.');
-                return;
-            }
-
-            // Add swipe functionality
-            cards.forEach((card, index) => {
-                let startX;
-                let moveX;
-                let currentX;
-
-                card.addEventListener('touchstart', (e) => {
-                    startX = e.touches[0].clientX;
-                });
-
-                card.addEventListener('touchmove', (e) => {
-                    moveX = e.touches[0].clientX;
-                    currentX = moveX - startX;
-                    card.style.transform = `translateX(${currentX}px)`;
-                });
-
-                card.addEventListener('touchend', () => {
-                    if (Math.abs(currentX) > 100) {
-                        if (currentX > 0) {
-                            swipeCard('right', index);
-                        } else {
-                            swipeCard('left', index);
-                        }
-                    } else {
-                        card.style.transform = 'translateX(0)';
-                    }
-                });
-            });
-        }
-
-        const currentSkills = <?php echo json_encode($currentSkills); ?>;
-
-        // Display users when the page loads
-        window.onload = function() {
-            displayUsers(usersData);
-            initializeSwipe();
-            
-            // Debug: Log the number of users found
-            console.log('Number of users found:', usersData.length);
-            console.log('First user data:', usersData[0]);
-        };
-
-        function displayUsers(users) {
-            console.log('Users to display:', users); // Debug log
-            const cardsContainer = document.getElementById('card-container');
-            cardsContainer.innerHTML = '';
-
-            if (users.length === 0) {
-                cardsContainer.innerHTML = '<p>No users found to match with.</p>';
-                return;
-            }
-
-            users.forEach((user, index) => {
-                console.log('Rendering user:', user); // Debug log
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.dataset.userId = user.User_ID; // Store user ID in card data
-                card.dataset.index = index; // Store card index
-                card.innerHTML = `
-                    <div class="card-content">
+        <div class="user-grid">
+            <?php if (!empty($unmatchedUsers)): ?>
+                <?php foreach ($unmatchedUsers as $user): ?>
+                    <div class="user-item" data-user-id="<?php echo htmlspecialchars($user['User_ID']); ?>">
                         <div class="profile-image">
-                            <img src="${user.Profile_Picture || 'default-profile.png'}" alt="${user.First_Name} ${user.Last_Name}">
+                            <img src="<?php echo !empty($user['profile_picture']) 
+                            ? ('data:image/jpeg;base64,' . base64_encode($user['profile_picture'])) 
+                            : 'default-profile.png'; ?>" alt="Profile Picture">
                         </div>
                         <div class="info">
-                            <h3>${user.First_Name} ${user.Last_Name}</h3>
-                            <p>${user.Bio || 'No bio added yet'}</p>
+                            <h3><?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?></h3>
+                            <p><?php
+                        if (!empty($user['bio'])) {
+                            echo nl2br(htmlspecialchars($user['bio']));
+                        } else {
+                            echo "No bio added yet.";
+                        }
+                    ?></p>
                             <div class="skills">
                                 <h4>Skills I Can Share:</h4>
                                 <div class="skill-list">
-                                    ${user.can_share_skills ? user.can_share_skills.split(',').map(skill => `
-                                        <span class="skill-tag">${skill.trim()}</span>
-                                    `).join('') : '<span class="skill-tag">No skills shared yet</span>'}
+                                    <?php if (!empty($user['can_share_skills'])): ?>
+                                        <?php foreach (explode(',', $user['can_share_skills']) as $skill): ?>
+                                            <span class="skill-tag"><?php echo htmlspecialchars(trim($skill)); ?></span>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <span class="skill-tag">No skills shared</span>
+                                    <?php endif; ?>
                                 </div>
                                 <h4>Skills I Want to Learn:</h4>
                                 <div class="skill-list">
-                                    ${user.want_to_learn_skills ? user.want_to_learn_skills.split(',').map(skill => `
-                                        <span class="skill-tag">${skill.trim()}</span>
-                                    `).join('') : '<span class="skill-tag">No skills to learn yet</span>'}
+                                    <?php if (!empty($user['want_to_learn_skills'])): ?>
+                                        <?php foreach (explode(',', $user['want_to_learn_skills']) as $skill): ?>
+                                            <span class="skill-tag"><?php echo htmlspecialchars(trim($skill)); ?></span>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <span class="skill-tag">No skills to learn</span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
+                        <div class="actions">
+                            <button class="match-btn">Match</button>
+                            <button class="no-btn">No</button>
+                        </div>
                     </div>
-                `;
-                cardsContainer.appendChild(card);
-            });
-        }
-
-        function swipeCard(direction, cardIndex) {
-            const cards = document.querySelectorAll('.card');
-            const currentCard = cards[cardIndex];
-            if (!currentCard) return;
-
-            // Prevent multiple clicks during animation
-            currentCard.style.pointerEvents = 'none';
-
-            // Get the user ID from the card data
-            const userId = currentCard.dataset.userId;
-            if (!userId) {
-                console.error('No user ID found for card');
-                return;
-            }
-            console.log('Sending match request to user ID:', userId);
-            
-            // Apply swipe animation with transition
-            currentCard.style.transition = 'transform 0.5s ease-out, opacity 0.5s ease-out';
-            currentCard.style.transform = direction === 'right' ? 'translateX(100%)' : 'translateX(-100%)';
-            currentCard.style.opacity = '0';
-
-            // Add animation end listener
-            currentCard.addEventListener('transitionend', () => {
-                if (direction === 'right') {
-                    // Only send match request for right swipe
-                    sendMatchRequest(userId).then(() => {
-                        // Remove card after successful match request
-                        currentCard.remove();
-                        initializeSwipe();
-                    }).catch((error) => {
-                        console.error('Match request failed:', error);
-                        // Reset card position on error
-                        currentCard.style.transform = 'translateX(0)';
-                        currentCard.style.opacity = '1';
-                        currentCard.style.pointerEvents = 'auto';
-                        
-                        // Show error message
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: error.message || 'Failed to send match request'
-                        });
-                    });
-                } else {
-                    // For left swipe, remove immediately
-                    currentCard.remove();
-                    initializeSwipe();
-                }
-            }, { once: true });
-
-            // Only send match request for right swipe
-            if (direction === 'right') {
-                sendMatchRequest(userId).then(() => {
-                    // Remove card after successful match request
-                    currentCard.remove();
-                    initializeSwipe();
-                }).catch((error) => {
-                    console.error('Match request failed:', error);
-                    // Reset card position on error
-                    currentCard.style.transform = 'translateX(0)';
-                    currentCard.style.opacity = '1';
-                    
-                    // Show error message
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: error.message || 'Failed to send match request'
-                    });
-                });
-            } else {
-                // For left swipe, remove immediately
-                currentCard.remove();
-                initializeSwipe();
-            }
-        }
-
-        async function sendMatchRequest(userId) {
-            console.log("Sending match request for user ID:", userId);
-            try {
-                const response = await fetch('send_match_request.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `receiver_id=${userId}`
-                });
-
-                const data = await response.json();
-                console.log("Response from server:", data);
-
-                if (data.success) {
-                    alert("Match request sent successfully!");
-                } else {
-                    alert("Error: " + data.error);
-                }
-            } catch (error) {
-                console.error("Error sending match request:", error);
-            }
-        }
-
-        function handleMatch(receiverId) {
-            const message = prompt("Enter a message for the match (optional):");
-            const appointmentDate = prompt("Enter an appointment date and time (YYYY-MM-DD HH:MM:SS):");
-
-            if (!appointmentDate) {
-                alert("Appointment date is required.");
-                return;
-            }
-
-            console.log('Sending match request to receiver ID:', receiverId);
-
-            fetch('match_user.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `receiver_id=${receiverId}&message=${encodeURIComponent(message || '')}&appointment_date=${encodeURIComponent(appointmentDate)}`
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Response from match_user.php:', data);
-
-                    if (data.success) {
-                        alert('Match request sent successfully!');
-                        fetchUsers(); // Refresh the cards
-                    } else {
-                        alert('Error: ' + data.error);
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        }
-
-        function handleNope(receiverId) {
-            // Perform any additional logic for "Nope" if needed
-            fetchUsers(); // Refresh the cards
-        }
-
-        function loadMessages(requestId) {
-            fetch(`fetch_messages.php?request_id=${requestId}&last_message_id=${lastMessageId}`)
-                .then(response => response.json())
-                .then(messages => {
-                    console.log('Fetched messages:', messages); // Debugging: Log fetched messages
-
-                    if (messages.error) {
-                        console.error(messages.error);
-                        return;
-                    }
-
-                    const chatMessages = document.getElementById('chat-messages');
-
-                    messages.forEach(msg => {
-                        const messageElement = document.createElement('div');
-                        messageElement.textContent = `${msg.sender_name}: ${msg.message}`;
-                        chatMessages.appendChild(messageElement);
-
-                        // Update the last message ID
-                        lastMessageId = Math.max(lastMessageId, msg.id);
-                    });
-
-                    // Scroll to the bottom of the chat
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                })
-                .catch(error => console.error('Error fetching messages:', error));
-        }
-
-        function fetchIncomingRequests() {
-            fetch('fetch_incoming_requests.php')
-                .then(response => response.json())
-                .then(incomingRequests => {
-                    const requestsTab = document.getElementById('requests');
-                    requestsTab.innerHTML = ''; // Clear existing content
-
-                    if (incomingRequests.error) {
-                        requestsTab.innerHTML = `<p>${incomingRequests.error}</p>`;
-                        return;
-                    }
-
-                    if (incomingRequests.length === 0) {
-                        requestsTab.innerHTML = '<p>No incoming requests found.</p>';
-                        return;
-                    }
-
-                    incomingRequests.forEach(request => {
-                        const requestElement = document.createElement('div');
-                        requestElement.className = 'request';
-                        requestElement.style.border = '1px solid #ddd'; // Add border for visibility
-                        requestElement.style.padding = '10px'; // Add padding for better layout
-                        requestElement.style.marginBottom = '10px'; // Add spacing between requests
-
-                        requestElement.innerHTML = `
-                            <h3>Request from ${request.sender_name}</h3>
-                            <p><strong>Status:</strong> ${request.status}</p>
-                            <p><strong>Appointment:</strong> ${request.appointment_date || 'Not set'}</p>
-                            <button class="accept-button" onclick="updateRequestStatus(${request.id}, 'accepted')">Accept</button>
-                            <button class="decline-button" onclick="updateRequestStatus(${request.id}, 'declined')">Decline</button>
-                        `;
-                        requestsTab.appendChild(requestElement);
-                    });
-                })
-                .catch(error => console.error('Error fetching incoming requests:', error));
-        }
-
-        function updateRequestStatus(requestId, status) {
-            fetch('update_request_status.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `request_id=${requestId}&status=${status}`
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(`Request ${status} successfully!`);
-                        fetchIncomingRequests(); // Refresh the requests tab
-                        if (status === 'accepted') {
-                            fetchOngoingRequests(); // Refresh the ongoing tab if accepted
-                        }
-                    } else {
-                        alert('Error: ' + data.error);
-                    }
-                })
-                .catch(error => console.error('Error updating request status:', error));
-        }
-
-        // Call fetchUsers when the page loads
-        document.addEventListener('DOMContentLoaded', fetchUsers);
-    </script>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>No users found.</p>
+            <?php endif; ?>
+        </div>
+    </div>
     <script>
-        // Pass PHP data to JavaScript
-        const usersData = <?php echo json_encode($unmatchedUsers); ?>;
-        const currentUserId = <?php echo json_encode($currentUserId); ?>;
+        document.addEventListener('click', function (e) {
+            const userItem = e.target.closest('.user-item');
+            const userId = userItem ? userItem.dataset.userId : null;
 
-        function displayUsers(users) {
-            const cardsContainer = document.getElementById('card-container');
-            cardsContainer.innerHTML = '';
-
-            if (users.length === 0) {
-                cardsContainer.innerHTML = '<div class="no-users">No users found</div>';
-                return;
-            }
-
-            users.forEach((user, index) => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.style.zIndex = users.length - index;
-                card.style.transform = `translateX(${index * 10}px)`;
-                card.dataset.userId = user.User_ID;
-
-                card.innerHTML = `
-                    <div class="card-content">
-                        <div class="profile-image">
-                            <img src="${user.Profile_Picture || 'default-profile.png'}" alt="${user.First_Name} ${user.Last_Name}" />
-                        </div>
-                        <h3>${user.First_Name} ${user.Last_Name}</h3>
-                        <p class="skills">
-                            <span class="can-share">Can Share: ${user.can_share_skills || 'None'}</span><br />
-                            <span class="want-to-learn">Want to Learn: ${user.want_to_learn_skills || 'None'}</span>
-                        </p>
-                        <div class="card-buttons">
-                            <button class="match-btn" onclick="sendMatchRequest(${user.User_ID})">Send Match Request</button>
-                        </div>
-                    </div>
-                `;
-
-                card.addEventListener('click', () => {
-                    displayUserDetails(user);
-                });
-
-                cardsContainer.appendChild(card);
-            });
-        }
-
-        // Add modal HTML
-        const modalHTML = `
-            <div id="matchConfirmationModal" class="modal">
-                <div class="modal-content">
-                    <h3>Confirm Match Request</h3>
-                    <p>Are you sure you want to send a match request to this user?</p>
-                    <input type="hidden" id="matchUserId" name="matchUserId">
-                    <div class="modal-buttons">
-                        <button id="confirmMatch" class="confirm-btn">Confirm</button>
-                        <button id="cancelMatch" class="cancel-btn">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-        // Add modal styles
-        const style = document.createElement('style');
-        style.textContent = `
-            .modal {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.5);
-                z-index: 1000;
-            }
-            .modal-content {
-                background-color: white;
-                margin: 15% auto;
-                padding: 20px;
-                border-radius: 8px;
-                width: 80%;
-                max-width: 500px;
-                position: relative;
-            }
-            .modal-buttons {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-                margin-top: 20px;
-            }
-            .confirm-btn {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-            .cancel-btn {
-                background-color: #f44336;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Function to show match confirmation modal
-        function showMatchConfirmation(userId) {
-            const modal = document.getElementById('matchConfirmationModal');
-            const confirmBtn = document.getElementById('confirmMatch');
-            const cancelBtn = document.getElementById('cancelMatch');
-            
-            // Set the user ID in the modal
-            document.getElementById('matchUserId').value = userId;
-            
-            modal.style.display = 'block';
-            
-            // Handle confirmation
-            confirmBtn.onclick = () => {
-                sendMatchRequest(userId);
-                modal.style.display = 'none';
-            };
-            
-            // Handle cancellation
-            cancelBtn.onclick = () => {
-                modal.style.display = 'none';
-            };
-        }
-
-        // Function to send match request
-        function sendMatchRequest(userId) {
-            fetch('send_match_request.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    sender_id: currentUserId,
-                    receiver_id: userId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Match request sent successfully!');
-                    fetchUsers(); // Refresh the list
-                } else {
-                    alert('Error sending match request: ' + data.error);
+            if (e.target.classList.contains('match-btn')) {
+                if (userId) {
+                    // Send match request via AJAX
+                    fetch('match_request.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `target_user_id=${userId}`,
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data.success) {
+                                // Remove the user container from the UI
+                                userItem.remove();
+                                console.log(`Match request sent to user ID: ${userId}`);
+                            } else {
+                                console.error(data.error || 'Failed to send match request');
+                            }
+                        })
+                        .catch((error) => console.error('Error:', error));
                 }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        // Call fetchUsers when the page loads
-        document.addEventListener('DOMContentLoaded', fetchUsers);
-                             <div>
-                                 <p>
-                                     <span class="want-to-learn">Want to Learn: ${user.want_to_learn_skills || 'None'}</span>
-                                 </p>
-                                 <div class="action-buttons">
-                                     <button onclick="swipeCard('left', ${index})" class="swipe-left">Not Interested</button>
-                                     <button onclick="swipeCard('right', ${index})" class="swipe-right">Interested</button>
-                                     <button onclick="showMatchConfirmation(${user.User_ID})" class="match-btn">Send Match Request</button>
-                                 </div>
-                             </div>
-                    
-                
-
-                cardsContainer.appendChild(card);
-            
-        // Initialize the display when the page loads
-        displayUsers(usersData);
-
-        async function fetchUsers() {
-            try {
-                const response = await fetch('fetch_users.php');
-                const data = await response.json();
-                if (data.success) {
-                    displayUsers(data.users);
-                } else {
-                    console.error('Error fetching users:', data.error);
-                }
-            } catch (error) {
-                console.error('Error:', error);
             }
-        }
 
-        // Call fetchUsers when the page loads
-        document.addEventListener('DOMContentLoaded', fetchUsers);
-        console.log('Users data:', usersData);
+            if (e.target.classList.contains('no-btn')) {
+                if (userItem) {
+                    // Move the user container to the bottom of the list
+                    const userGrid = document.querySelector('.user-grid');
+                    userGrid.appendChild(userItem);
+                    console.log(`User ID ${userId} moved to the bottom of the list`);
+                }
+            }
+        });
     </script>
-    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 </body>
 </html>

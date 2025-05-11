@@ -79,14 +79,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Fetch all users with their restriction status
-$all_users = $crud->getAllUsersWithRestrictions();
+$usersPerPage = 8;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $usersPerPage;
 
-// Fetch restricted users
-$restricted_users = $crud->getRestrictedUsers();
+// Get total user count
+$totalUsers = $conn->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$totalPages = ceil($totalUsers / $usersPerPage);
 
-// Fetch banned users
-$banned_users = $crud->getBannedUsers();
+// Fetch users for current page
+$stmt = $conn->prepare("SELECT * FROM viewallusers LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':limit', $usersPerPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+/// Fetch all users with their restriction status from the view
+$all_users = $conn->query("SELECT * FROM viewallusers")->fetchAll(PDO::FETCH_ASSOC);
+
+// Pagination for restricted users
+$restrictedPerPage = 5;
+$restrictedPage = isset($_GET['restricted_page']) ? (int)$_GET['restricted_page'] : 1;
+if ($restrictedPage < 1) $restrictedPage = 1;
+$restrictedOffset = ($restrictedPage - 1) * $restrictedPerPage;
+$totalRestricted = $conn->query("SELECT COUNT(*) FROM view_restrictedusers")->fetchColumn();
+$totalRestrictedPages = ceil($totalRestricted / $restrictedPerPage);
+$restricted_stmt = $conn->prepare("SELECT * FROM view_restrictedusers LIMIT :limit OFFSET :offset");
+$restricted_stmt->bindValue(':limit', $restrictedPerPage, PDO::PARAM_INT);
+$restricted_stmt->bindValue(':offset', $restrictedOffset, PDO::PARAM_INT);
+$restricted_stmt->execute();
+$restricted_users = $restricted_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Pagination for banned users
+$bannedPerPage = 5;
+$bannedPage = isset($_GET['banned_page']) ? (int)$_GET['banned_page'] : 1;
+if ($bannedPage < 1) $bannedPage = 1;
+$bannedOffset = ($bannedPage - 1) * $bannedPerPage;
+$totalBanned = $conn->query("SELECT COUNT(*) FROM view_bannedusers")->fetchColumn();
+$totalBannedPages = ceil($totalBanned / $bannedPerPage);
+$banned_stmt = $conn->prepare("SELECT * FROM view_bannedusers LIMIT :limit OFFSET :offset");
+$banned_stmt->bindValue(':limit', $bannedPerPage, PDO::PARAM_INT);
+$banned_stmt->bindValue(':offset', $bannedOffset, PDO::PARAM_INT);
+$banned_stmt->execute();
+$banned_users = $banned_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['community_id'])) {
+    require_once 'sp.php';
+    $crud = new Crud();
+    $id = intval($_POST['community_id']);
+    try {
+        if ($_POST['action'] === 'approve') {
+            $crud->approveCommunity($id);
+            echo json_encode(['success' => true]);
+        } elseif ($_POST['action'] === 'decline') {
+            $crud->declineCommunity($id);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid action']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -97,6 +153,7 @@ $banned_users = $crud->getBannedUsers();
     <title>SkillSwap Admin - Manage Users</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
             margin: 0;
@@ -163,12 +220,15 @@ $banned_users = $crud->getBannedUsers();
 
         .sidebar-menu {
             list-style: none;
+    padding: 0;
+    margin: 0;
         }
-
         .sidebar-menu li {
-            margin-bottom: 10px;
+    margin-bottom: 18px; /* Consistent spacing */
+}
+.sidebar-menu li:last-child {
+    margin-bottom: 0;
         }
-
         .sidebar-menu a {
             display: flex;
             align-items: center;
@@ -178,17 +238,15 @@ $banned_users = $crud->getBannedUsers();
             text-decoration: none;
             border-radius: 8px;
             transition: all 0.3s ease;
+    font-size: 18px;
         }
-
         .sidebar-menu a:hover {
             background: #f0f2f5;
         }
-
         .sidebar-menu a.active {
             background: #ffeb3b;
             color: #000;
         }
-
         .sidebar-menu i {
             font-size: 20px;
         }
@@ -358,6 +416,42 @@ $banned_users = $crud->getBannedUsers();
         .tab-content.active {
             display: block;
         }
+
+        .pagination {
+            display: inline-flex;
+            list-style: none;
+            padding: 0;
+            margin: 0 auto;
+            justify-content: center;
+        }
+        .page-item {
+            margin-right: 0;
+        }
+        .page-link {
+            padding: 6px 18px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            color: #333;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: normal;
+            margin-right: 5px;
+            transition: background 0.2s, color 0.2s;
+            display: inline-block;
+        }
+        .page-link.active, .page-item.active .page-link {
+            background: #ffeb3b;
+            color: #000;
+            font-weight: bold;
+            border: 1.5px solid #ffeb3b;
+        }
+        .page-item.disabled .page-link {
+            color: #bbb;
+            pointer-events: none;
+            background: #fff;
+            border: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
@@ -372,7 +466,7 @@ $banned_users = $crud->getBannedUsers();
                 <div class="admin-name"><?php echo htmlspecialchars($admin_name); ?></div>
                 <div class="admin-role"><?php echo ucfirst($admin_role); ?></div>
             </div>
-            <a href="logout.php" style="color: #666; text-decoration: none;">
+            <a href="#" onclick="confirmLogout()" style="color: #666; text-decoration: none;">
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </div>
@@ -405,21 +499,23 @@ $banned_users = $crud->getBannedUsers();
                     Announcement
                 </a>
             </li>
+            <?php if ($admin_role === 'super_admin'): ?>
             <li>
                 <a href="manage_admins.php">
                     <i class="fas fa-user-shield"></i>
                     Manage Admins
                 </a>
             </li>
+            <?php endif; ?>
             <li>
                 <a href="manageposts.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-thumbtack"></i>
                     Manage Posts
                 </a>
             </li>
             <li>
                 <a href="Community.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-users-cog"></i>
                     Community
                 </a>
             </li>
@@ -438,10 +534,10 @@ $banned_users = $crud->getBannedUsers();
             <!-- All Users Tab -->
             <div id="all-users" class="tab-content active">
                 <h2>All Users</h2>
-                <table>
+                <table class="table">
                     <thead>
                         <tr>
-                            <th>User ID</th>
+                            <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Verified</th>
@@ -450,19 +546,19 @@ $banned_users = $crud->getBannedUsers();
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($all_users as $user): ?>
+                        <?php foreach ($users as $user): ?>
                         <tr>
-                            <td>#<?php echo $user['User_ID']; ?></td>
-                            <td><?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?></td>
-                            <td><?php echo htmlspecialchars($user['Email']); ?></td>
+                            <td><?= htmlspecialchars($user['User_ID']) ?></td>
+                            <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
+                            <td><?= htmlspecialchars($user['Email']) ?></td>
                             <td>
                                 <?php echo $user['Is_Verified'] ? 
                                     '<span style="color:green">Yes</span>' : 
                                     '<span style="color:red">No</span>'; ?>
                             </td>
                             <td>
-                                <?php if ($user['Status']): ?>
-                                    <span style="color: <?php echo $user['Status'] === 'banned' ? 'red' : 'orange'; ?>">
+                                <?php if (isset($user['Status']) && $user['Status']): ?>
+                                    <span style="color: <?php echo $user['Status'] === 'banned' ? 'red' : 'orange'; ?>;">
                                         <?php echo ucfirst($user['Status']); ?>
                                     </span>
                                 <?php else: ?>
@@ -472,7 +568,7 @@ $banned_users = $crud->getBannedUsers();
                             <td>
                                 <div style="display: flex; gap: 8px;">
                                     <button class="action-btn view-btn">View</button>
-                                    <?php if (!$user['Status']): ?>
+                                    <?php if (!isset($user['Status']) || !$user['Status']): ?>
                                         <button class="action-btn restrict-btn" onclick="openRestrictModal(<?php echo $user['User_ID']; ?>, '<?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?>', 'restricted')">Restrict</button>
                                         <button class="action-btn ban-btn" onclick="openRestrictModal(<?php echo $user['User_ID']; ?>, '<?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?>', 'banned')">Ban</button>
                                     <?php else: ?>
@@ -486,15 +582,32 @@ $banned_users = $crud->getBannedUsers();
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <div style="text-align:center; margin-top:20px;">
+                <nav aria-label="Page navigation example">
+                  <ul class="pagination">
+                    <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
+                      <a class="page-link" href="?page=<?php echo $page - 1; ?>">Previous</a>
+                    </li>
+                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                      <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
+                        <a class="page-link<?php if ($i == $page) echo ' active'; ?>" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                      </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?php if ($page >= $totalPages) echo 'disabled'; ?>">
+                      <a class="page-link" href="?page=<?php echo $page + 1; ?>">Next</a>
+                    </li>
+                  </ul>
+                </nav>
+                </div>
             </div>
 
             <!-- Restricted Users Tab -->
             <div id="restricted-users" class="tab-content">
                 <h2>Restricted Users</h2>
-                <table>
+                <table class="table">
                     <thead>
                         <tr>
-                            <th>User ID</th>
+                            <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Status</th>
@@ -507,13 +620,13 @@ $banned_users = $crud->getBannedUsers();
                     <tbody>
                         <?php foreach ($restricted_users as $user): ?>
                         <tr>
-                            <td>#<?php echo $user['User_ID']; ?></td>
-                            <td><?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?></td>
-                            <td><?php echo htmlspecialchars($user['Email']); ?></td>
-                            <td><?php echo ucfirst($user['Status']); ?></td>
-                            <td><?php echo htmlspecialchars($user['Reason']); ?></td>
+                            <td><?= htmlspecialchars($user['User_ID']) ?></td>
+                            <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
+                            <td><?= htmlspecialchars($user['Email']) ?></td>
+                            <td><?= htmlspecialchars($user['Status']) ?></td>
+                            <td><?= htmlspecialchars($user['Reason']) ?></td>
                             <td><?php echo $user['Restricted_Until'] ? date('M d, Y', strtotime($user['Restricted_Until'])) : 'Permanent'; ?></td>
-                            <td><?php echo htmlspecialchars($user['Admin_First_Name'] . ' ' . $user['Admin_Last_Name']); ?></td>
+                            <td><?= htmlspecialchars($user['Admin_First_Name'] . ' ' . $user['Admin_Last_Name']) ?></td>
                             <td>
                                 <div style="display: flex; gap: 8px;">
                                     <button class="action-btn view-btn">View</button>
@@ -524,15 +637,32 @@ $banned_users = $crud->getBannedUsers();
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <div style="text-align:center; margin-top:20px;">
+                <nav aria-label="Restricted Users Page navigation">
+                  <ul class="pagination">
+                    <li class="page-item <?php if ($restrictedPage <= 1) echo 'disabled'; ?>">
+                      <a class="page-link" href="?restricted_page=<?php echo $restrictedPage - 1; ?>#restricted-users">Previous</a>
+                    </li>
+                    <?php for ($i = 1; $i <= $totalRestrictedPages; $i++): ?>
+                      <li class="page-item <?php if ($i == $restrictedPage) echo 'active'; ?>">
+                        <a class="page-link<?php if ($i == $restrictedPage) echo ' active'; ?>" href="?restricted_page=<?php echo $i; ?>#restricted-users"><?php echo $i; ?></a>
+                      </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?php if ($restrictedPage >= $totalRestrictedPages) echo 'disabled'; ?>">
+                      <a class="page-link" href="?restricted_page=<?php echo $restrictedPage + 1; ?>#restricted-users">Next</a>
+                    </li>
+                  </ul>
+                </nav>
+                </div>
             </div>
 
             <!-- Banned Users Tab -->
             <div id="banned-users" class="tab-content">
                 <h2>Banned Users</h2>
-                <table>
+                <table class="table">
                     <thead>
                         <tr>
-                            <th>User ID</th>
+                            <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Status</th>
@@ -545,13 +675,13 @@ $banned_users = $crud->getBannedUsers();
                     <tbody>
                         <?php foreach ($banned_users as $user): ?>
                         <tr>
-                            <td>#<?php echo $user['User_ID']; ?></td>
-                            <td><?php echo htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']); ?></td>
-                            <td><?php echo htmlspecialchars($user['Email']); ?></td>
-                            <td><?php echo ucfirst($user['Status']); ?></td>
-                            <td><?php echo htmlspecialchars($user['Reason']); ?></td>
+                            <td><?= htmlspecialchars($user['User_ID']) ?></td>
+                            <td><?= htmlspecialchars($user['First_Name'] . ' ' . $user['Last_Name']) ?></td>
+                            <td><?= htmlspecialchars($user['Email']) ?></td>
+                            <td><?= htmlspecialchars($user['Status']) ?></td>
+                            <td><?= htmlspecialchars($user['Reason']) ?></td>
                             <td><?php echo $user['Restricted_Until'] ? date('M d, Y', strtotime($user['Restricted_Until'])) : 'Permanent'; ?></td>
-                            <td><?php echo htmlspecialchars($user['Admin_First_Name'] . ' ' . $user['Admin_Last_Name']); ?></td>
+                            <td><?= htmlspecialchars($user['Admin_First_Name'] . ' ' . $user['Admin_Last_Name']) ?></td>
                             <td>
                                 <div style="display: flex; gap: 8px;">
                                     <button class="action-btn view-btn">View</button>
@@ -562,6 +692,23 @@ $banned_users = $crud->getBannedUsers();
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <div style="text-align:center; margin-top:20px;">
+                <nav aria-label="Banned Users Page navigation">
+                  <ul class="pagination">
+                    <li class="page-item <?php if ($bannedPage <= 1) echo 'disabled'; ?>">
+                      <a class="page-link" href="?banned_page=<?php echo $bannedPage - 1; ?>#banned-users">Previous</a>
+                    </li>
+                    <?php for ($i = 1; $i <= $totalBannedPages; $i++): ?>
+                      <li class="page-item <?php if ($i == $bannedPage) echo 'active'; ?>">
+                        <a class="page-link<?php if ($i == $bannedPage) echo ' active'; ?>" href="?banned_page=<?php echo $i; ?>#banned-users"><?php echo $i; ?></a>
+                      </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?php if ($bannedPage >= $totalBannedPages) echo 'disabled'; ?>">
+                      <a class="page-link" href="?banned_page=<?php echo $bannedPage + 1; ?>#banned-users">Next</a>
+                    </li>
+                  </ul>
+                </nav>
+                </div>
             </div>
         </div>
     </div>
@@ -637,32 +784,41 @@ $banned_users = $crud->getBannedUsers();
         }
 
         function removeRestriction(userId) {
-            if (confirm('Are you sure you want to remove this restriction?')) {
-                fetch('manage_users.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=remove_restriction&user_id=${userId}`
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert(data.message || 'Failed to remove restriction');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while removing the restriction');
-                });
-            }
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This will remove the restriction/ban from the user.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#4CAF50',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, remove it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('manage_users.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=remove_restriction&user_id=${userId}`
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Removed!', 'The restriction/ban has been removed.', 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.message || 'Failed to remove restriction/ban', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error', 'An error occurred while removing the restriction/ban', 'error');
+                    });
+                }
+            });
         }
 
         // Close modal when clicking outside
@@ -670,6 +826,22 @@ $banned_users = $crud->getBannedUsers();
             if (event.target == document.getElementById('restrictModal')) {
                 closeRestrictModal();
             }
+        }
+
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your account!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'logout.php';
+                }
+            });
         }
     </script>
 </body>

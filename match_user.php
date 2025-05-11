@@ -12,6 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
+    error_log("Saving request: sender_id = $sender_id, receiver_id = $receiver_id, message = $message");
+
     try {
         $db = new Database();
         $conn = $db->getConnection();

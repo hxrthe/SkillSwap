@@ -256,10 +256,9 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 20px;
             border-radius: 5px;
             cursor: pointer;
-            width: 100%;
+            width: 60%;
             margin-top: 20px;
             transition: all 0.3s ease;
         }

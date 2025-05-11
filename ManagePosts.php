@@ -16,8 +16,40 @@ $admin_id = $_SESSION['admin_id'];
 $admin_name = $_SESSION['admin_name'];
 $admin_role = $_SESSION['admin_role'];
 
-// Fetch all admins
-$all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Created_At, Updated_At FROM posts")->fetchAll(PDO::FETCH_ASSOC);
+// Pagination logic
+$postsPerPage = 8;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $postsPerPage;
+
+// Get total post count
+$totalPosts = $conn->query("SELECT COUNT(*) FROM posts")->fetchColumn();
+$totalPages = ceil($totalPosts / $postsPerPage);
+
+// Fetch posts for current page
+$stmt = $conn->prepare("SELECT Post_ID, User_ID, Community_ID, Content, Created_At, Updated_At FROM posts LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':limit', $postsPerPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
+$all_posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Handle post deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_post') {
+    header('Content-Type: application/json');
+    if (!isset($_POST['post_id'])) {
+        echo json_encode(['success' => false, 'error' => 'No post ID provided']);
+        exit();
+    }
+    $post_id = (int)$_POST['post_id'];
+    try {
+        $stmt = $conn->prepare('DELETE FROM posts WHERE Post_ID = ?');
+        $stmt->execute([$post_id]);
+        echo json_encode(['success' => true]);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => 'Failed to delete post']);
+    }
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -28,6 +60,8 @@ $all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Create
     <title>SkillSwap Admin - Manage Admins</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
             margin: 0;
@@ -94,12 +128,15 @@ $all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Create
 
         .sidebar-menu {
             list-style: none;
+    padding: 0;
+    margin: 0;
         }
-
         .sidebar-menu li {
-            margin-bottom: 10px;
+    margin-bottom: 18px; /* Consistent spacing */
+}
+.sidebar-menu li:last-child {
+    margin-bottom: 0;
         }
-
         .sidebar-menu a {
             display: flex;
             align-items: center;
@@ -109,21 +146,18 @@ $all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Create
             text-decoration: none;
             border-radius: 8px;
             transition: all 0.3s ease;
+    font-size: 18px;
         }
-
         .sidebar-menu a:hover {
             background: #f0f2f5;
         }
-
         .sidebar-menu a.active {
             background: #ffeb3b;
             color: #000;
         }
-
         .sidebar-menu i {
             font-size: 20px;
         }
-
         .main-content {
             margin-left: 250px;
             margin-top: 70px;
@@ -188,6 +222,42 @@ $all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Create
         .restrict-btn:hover {
             background: #cc0000;
         }
+
+        .pagination {
+            display: inline-flex;
+            list-style: none;
+            padding: 0;
+            margin: 0 auto;
+            justify-content: center;
+        }
+        .page-item {
+            margin-right: 0;
+        }
+        .page-link {
+            padding: 6px 18px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            color: #333;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: normal;
+            margin-right: 5px;
+            transition: background 0.2s, color 0.2s;
+            display: inline-block;
+        }
+        .page-link.active, .page-item.active .page-link {
+            background: #ffeb3b;
+            color: #000;
+            font-weight: bold;
+            border: 1.5px solid #ffeb3b;
+        }
+        .page-item.disabled .page-link {
+            color: #bbb;
+            pointer-events: none;
+            background: #fff;
+            border: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
@@ -202,7 +272,7 @@ $all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Create
                 <div class="admin-name"><?php echo htmlspecialchars($admin_name); ?></div>
                 <div class="admin-role"><?php echo ucfirst($admin_role); ?></div>
             </div>
-            <a href="logout.php" style="color: #666; text-decoration: none;">
+            <a href="#" onclick="confirmLogout()" style="color: #666; text-decoration: none;">
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </div>
@@ -236,21 +306,23 @@ $all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Create
                     Announcement
                 </a>
             </li>
+            <?php if ($admin_role === 'super_admin'): ?>
             <li>
                 <a href="manage_admins.php">
                     <i class="fas fa-user-shield"></i>
                     Manage Admins
                 </a>
             </li>
+            <?php endif; ?>
             <li>
-                <a href="manageposts.php"  class="active">
-                    <i class="fas fa-user-shield"></i>
+                <a href="manageposts.php" class="active">
+                    <i class="fas fa-thumbtack"></i>
                     Manage Posts
                 </a>
             </li>
             <li>
                 <a href="Community.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-users-cog"></i>
                     Community
                 </a>
             </li>
@@ -261,7 +333,7 @@ $all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Create
     <div class="main-content">
         <div class="card">
             <h2>All Posts</h2>     
-            <table>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Post ID</th>
@@ -276,27 +348,87 @@ $all_posts = $conn->query("SELECT Post_ID, User_ID, Community_ID,Content, Create
                 <tbody>
                     <?php foreach ($all_posts as $post): ?>
                     <tr>
-                        <td>#<?php echo $post['Post_ID']; ?></td>
-                        <td><?php echo htmlspecialchars($post['User_ID']); ?></td>
-                        <td><?php echo htmlspecialchars($post['Community_ID']); ?></td>
-                        <td><?php echo htmlspecialchars($post['Content']); ?></td>
-                        <td>
-                            <?php echo $post['Created_At']; ?>
-                        </td>
-                        <td>
-                            <?php echo $post['Updated_At']; ?>
-                        </td>
+                        <td><?= htmlspecialchars($post['Post_ID']) ?></td>
+                        <td><?= htmlspecialchars($post['User_ID']) ?></td>
+                        <td><?= htmlspecialchars($post['Community_ID']) ?></td>
+                        <td><?= htmlspecialchars($post['Content']) ?></td>
+                        <td><?= htmlspecialchars($post['Created_At']) ?></td>
+                        <td><?= htmlspecialchars($post['Updated_At']) ?></td>
                         <td>
                             <div style="display: flex; gap: 8px;">
                                 <button class="action-btn view-btn">View</button>
-                                <button class="action-btn restrict-btn">Delete</button>
+                                <button class="action-btn restrict-btn" onclick="deletePost(<?= $post['Post_ID'] ?>)">Delete</button>
                             </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <!-- Pagination -->
+            <div style="text-align:center; margin-top:20px;">
+            <nav aria-label="Page navigation example">
+              <ul class="pagination">
+                <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
+                  <a class="page-link" href="?page=<?php echo $page - 1; ?>">Previous</a>
+                </li>
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                  <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
+                    <a class="page-link<?php if ($i == $page) echo ' active'; ?>" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                  </li>
+                <?php endfor; ?>
+                <li class="page-item <?php if ($page >= $totalPages) echo 'disabled'; ?>">
+                  <a class="page-link" href="?page=<?php echo $page + 1; ?>">Next</a>
+                </li>
+              </ul>
+            </nav>
+            </div>
         </div>
     </div>
+
+    <script>
+    function deletePost(postId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'This post will be permanently deleted!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('ManagePosts.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'action=delete_post&post_id=' + encodeURIComponent(postId)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Deleted!', 'The post has been deleted.', 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', data.error || 'Failed to delete post', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You will be logged out of your account!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = 'logout.php';
+            }
+        });
+    }
+    </script>
 </body>
 </html> 
