@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'SkillSwapDatabase.php';
+require_once 'SP.php';
 
 // Check if user is logged in as admin
 if (!isset($_SESSION['admin_id'])) {
@@ -10,6 +11,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 $db = new Database();
 $conn = $db->getConnection();
+$crud = new Crud();
 
 // Handle AJAX delete request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
@@ -83,19 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
 
             $_SESSION['success'] = "Announcement created successfully.";
         } else {
-            $stmt = $conn->prepare("
-                UPDATE announcements 
-                SET Title = :title, Content = :content, Is_Active = :is_active 
-                WHERE Announcement_ID = :id
-            ");
-
-            $stmt->execute([
-                ':title' => $title,
-                ':content' => $content,
-                ':is_active' => $is_active,
-                ':id' => $announcement_id
-            ]);
-
+            error_log('Edit POST: ' . print_r($_POST, true));
+            $crud->editAnnouncement($announcement_id, $title, $content, $is_active);
             $_SESSION['success'] = "Announcement updated successfully.";
         }
     } catch (Exception $e) {
@@ -130,35 +121,73 @@ if (isset($_GET['id'])) {
     }
 }
 
-// Fetch all active announcements
-try {
-    error_log("Attempting to fetch announcements...");
-    // First, let's check if there are any announcements at all
-    $check_stmt = $conn->query("SELECT COUNT(*) FROM announcements");
-    $total_announcements = $check_stmt->fetchColumn();
-    error_log("Total announcements in database: " . $total_announcements);
+// Pagination logic for announcements
+$announcementsPerPage = 8;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $announcementsPerPage;
+// Get total announcement count
+$totalAnnouncements = $conn->query("SELECT COUNT(*) FROM announcements")->fetchColumn();
+$totalPages = ceil($totalAnnouncements / $announcementsPerPage);
+// Fetch announcements for current page
+$stmt = $conn->prepare("
+    SELECT a.*, adm.First_Name, adm.Last_Name 
+    FROM announcements a 
+    LEFT JOIN admins adm ON a.Admin_ID = adm.Admin_ID 
+    ORDER BY a.Created_At DESC
+    LIMIT :limit OFFSET :offset
+");
+$stmt->bindValue(':limit', $announcementsPerPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
+$announcements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Now fetch active announcements with admin info
-    $stmt = $conn->query("
-        SELECT a.*, adm.First_Name, adm.Last_Name 
-        FROM announcements a 
-        LEFT JOIN admins adm ON a.Admin_ID = adm.Admin_ID 
-        WHERE a.Is_Active = 1 
-        ORDER BY a.Created_At DESC
-    ");
-    $announcements = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Debug information
-    error_log("Number of active announcements found: " . count($announcements));
-    if (empty($announcements)) {
-        error_log("No active announcements found in the database");
-    } else {
-        error_log("First announcement data: " . print_r($announcements[0], true));
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'set_active') {
+    header('Content-Type: application/json');
+    $announcement_id = (int)$_POST['id'];
+    try {
+        $crud->setActiveAnnouncement($announcement_id);
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to set active announcement']);
     }
-} catch (PDOException $e) {
-    $announcements = [];
-    error_log("Database error: " . $e->getMessage());
-    $_SESSION['error'] = "Failed to fetch announcements: " . $e->getMessage();
+    exit();
+}
+
+// --- AJAX: Fetch single announcement for editing ---
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['fetch_announcement'])) {
+    header('Content-Type: application/json');
+    if (!isset($_GET['id'])) {
+        echo json_encode(['success' => false, 'message' => 'No ID provided']);
+        exit();
+    }
+    $id = (int)$_GET['id'];
+    $stmt = $conn->prepare("SELECT * FROM announcements WHERE Announcement_ID = ?");
+    $stmt->execute([$id]);
+    $announcement = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($announcement) {
+        echo json_encode(['success' => true, 'announcement' => $announcement]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Announcement not found']);
+    }
+    exit();
+}
+
+// Handle AJAX delete request using stored procedure
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_announcement') {
+    header('Content-Type: application/json');
+    if (!isset($_POST['id'])) {
+        echo json_encode(['success' => false, 'message' => 'Invalid request']);
+        exit();
+    }
+    $announcement_id = (int)$_POST['id'];
+    try {
+        $crud->deleteAnnouncement($announcement_id);
+        echo json_encode(['success' => true]);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to delete announcement']);
+    }
+    exit();
 }
 ?>
 
@@ -170,6 +199,8 @@ try {
     <title>SkillSwap Admin Dashboard</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
             margin: 0;
@@ -235,36 +266,37 @@ try {
         }
 
         .sidebar-menu {
-            list-style: none;
-        }
-
-        .sidebar-menu li {
-            margin-bottom: 10px;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            color: #333;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-menu a:hover {
-            background: #f0f2f5;
-        }
-
-        .sidebar-menu a.active {
-            background: #ffeb3b;
-            color: #000;
-        }
-
-        .sidebar-menu i {
-            font-size: 20px;
-        }
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.sidebar-menu li {
+    margin-bottom: 18px; /* Consistent spacing */
+}
+.sidebar-menu li:last-child {
+    margin-bottom: 0;
+}
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    color: #333;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 18px;
+}
+.sidebar-menu a:hover {
+    background: #f0f2f5;
+}
+.sidebar-menu a.active {
+    background: #ffeb3b;
+    color: #000;
+}
+.sidebar-menu i {
+    font-size: 20px;
+}
 
         .main-content {
             margin-left: 250px;
@@ -490,6 +522,190 @@ try {
             font-size: 20px;
             font-weight: bold;
         }
+
+        .create-announcement-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
+        }
+
+        .create-announcement-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .pagination {
+            display: inline-flex;
+            list-style: none;
+            padding: 0;
+            margin: 0 auto;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: none;
+        }
+        .page-item {
+            margin: 0;
+        }
+        .page-link {
+            display: inline-block;
+            padding: 6px 18px;
+            border: 1.5px solid #eee;
+            border-radius: 8px;
+            background: #fff;
+            color: #222;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: normal;
+            transition: background 0.2s, color 0.2s, border 0.2s;
+            cursor: pointer;
+        }
+        .page-link.active, .page-item.active .page-link {
+            background: #ffeb3b;
+            color: #111;
+            font-weight: bold;
+            border: 1.5px solid #ffeb3b;
+        }
+        .page-item.disabled .page-link {
+            color: #bbb;
+            pointer-events: none;
+            background: #fff;
+            border: 1.5px solid #eee;
+        }
+        @media (max-width: 991px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                top: auto;
+                box-shadow: none;
+                margin-top: 70px;
+            }
+            .main-content {
+                margin-left: 0;
+                margin-top: 150px;
+                padding: 15px;
+            }
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px 20px;
+                min-height: 70px;
+            }
+            .admin-info {
+                margin-top: 10px;
+            }
+            .pagination {
+                flex-wrap: wrap;
+            }
+        }
+        @media (max-width: 600px) {
+            .navbar {
+                padding: 8px 15px;
+            }
+            .logo {
+                font-size: 18px;
+            }
+            .sidebar-menu a {
+                font-size: 16px;
+            }
+            .card h2,
+            th,
+            td {
+                font-size: 14px;
+            }
+            .action-btn,
+            .page-link {
+                font-size: 14px;
+                padding: 6px 12px;
+            }
+            .create-announcement-btn {
+                font-size: 14px;
+                padding: 8px 15px;
+            }
+        }
+        @media screen and (max-width: 1024px) {
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            .card {
+                padding: 16px;
+            }
+            th, td {
+                padding: 12px 8px;
+                font-size: 14px;
+            }
+        }
+        @media screen and (max-width: 768px) {
+            .navbar {
+                padding: 10px 15px;
+            }
+            .logo {
+                font-size: 20px;
+            }
+            .logo img {
+                height: 32px;
+            }
+            .admin-info {
+                gap: 10px;
+            }
+            .admin-name {
+                font-size: 14px;
+            }
+            .admin-role {
+                font-size: 12px;
+            }
+            th, td {
+                padding: 10px 6px;
+                font-size: 13px;
+                white-space: nowrap;
+            }
+            .action-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .create-announcement-btn {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+        }
+        @media screen and (max-width: 480px) {
+            .main-content {
+                padding: 15px;
+            }
+            .card {
+                padding: 12px;
+            }
+            th, td {
+                padding: 8px 4px;
+                font-size: 12px;
+            }
+            .action-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+            .create-announcement-btn {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+        }
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
 <body>
@@ -504,7 +720,7 @@ try {
                 <div class="admin-name"><?php echo htmlspecialchars($_SESSION['admin_name']); ?></div>
                 <div class="admin-role"><?php echo ucfirst($_SESSION['admin_role']); ?></div>
             </div>
-            <a href="logout.php" style="color: #666; text-decoration: none;">
+            <a href="#" onclick="confirmLogout()" style="color: #666; text-decoration: none;">
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </div>
@@ -525,34 +741,35 @@ try {
                     Manage Users
                 </a>
             </li>
-            
-            <li>
-                <a href="Reports.php">
-                    <i class="fas fa-flag"></i>
-                    Review Reports
-                </a>
-            </li>
             <li>
                 <a href="announcement.php" class="active">
                     <i class="fas fa-bullhorn"></i>
                     Announcement
                 </a>
             </li>
+            <?php if ($_SESSION['admin_role'] === 'super_admin'): ?>
             <li>
-                    <a href="manage_admins.php">
+                <a href="manage_admins.php">
                     <i class="fas fa-user-shield"></i>
                     Manage Admins
                 </a>
             </li>
+            <?php endif; ?>
+            <li>
+                <a href="ManageComments.php">
+                    <i class="fas fa-comments"></i>
+                    Manage Comments
+                </a>
+            </li>
             <li>
                 <a href="manageposts.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-thumbtack"></i>
                     Manage Posts
                 </a>
             </li>
             <li>
                 <a href="Community.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-users-cog"></i>
                     Community
                 </a>
             </li>
@@ -562,9 +779,97 @@ try {
     <!-- Main Content -->
     <div class="main-content">
         
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <button id="openModalBtn" class="action-btn view-btn" style="font-size:16px;">Create Announcement</button>
-        
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Announcements</h2>
+                <button class="create-announcement-btn" onclick="openAnnouncementModal()">
+                    <i class="fas fa-plus"></i> Create Announcement
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#f0f2f5;">
+                            <th style="padding:12px;">Title</th>
+                            <th style="padding:12px;">Content</th>
+                            <th style="padding:12px;">Posted By</th>
+                            <th style="padding:12px;">Date</th>
+                            <th style="padding:12px;">Status</th>
+                            <th style="padding:12px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        try {
+                            $stmt = $conn->query("
+                                SELECT a.*, adm.First_Name, adm.Last_Name 
+                                FROM announcements a 
+                                LEFT JOIN admins adm ON a.Admin_ID = adm.Admin_ID 
+                                ORDER BY a.Created_At DESC
+                            ");
+                            $announcements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                            
+                            if (count($announcements) > 0):
+                                foreach ($announcements as $announcement):
+                        ?>
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding:12px; vertical-align:top;"><?php echo htmlspecialchars($announcement['Title']); ?></td>
+                                <td style="padding:12px; vertical-align:top; max-width: 400px; word-wrap: break-word;">
+                                    <div style="max-height: 100px; overflow-y: auto;">
+                                        <?php echo nl2br(htmlspecialchars($announcement['Content'])); ?>
+                                    </div>
+                                </td>
+                                <td style="padding:12px; vertical-align:top;"><?php echo htmlspecialchars($announcement['First_Name'] . ' ' . $announcement['Last_Name']); ?></td>
+                                <td style="padding:12px; vertical-align:top;"><?php echo date('M d, Y', strtotime($announcement['Created_At'])); ?></td>
+                                <td style="padding:12px; vertical-align:top; text-align:center;">
+                                    <?php echo $announcement['Is_Active'] ? 
+                                        '<span style="color:green">Active</span>' : 
+                                        '<span style="color:red">Inactive</span>'; ?>
+                                </td>
+                                <td style="padding:12px; vertical-align:top; text-align:center;">
+                                    <div style="display: flex; gap: 8px; justify-content: center;">
+                                        <a href="#" onclick="editAnnouncement(<?php echo $announcement['Announcement_ID']; ?>)" class="action-btn view-btn">Edit</a>
+                                        <button onclick="deleteAnnouncement(<?php echo $announcement['Announcement_ID']; ?>)" class="action-btn restrict-btn">Delete</button>
+                                        <button onclick="setActiveAnnouncement(<?php echo $announcement['Announcement_ID']; ?>)" class="action-btn view-btn">
+                                            Set Active
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php 
+                                endforeach;
+                            else:
+                        ?>
+                            <tr>
+                                <td colspan="6" style="padding:12px; text-align:center; color:#666;">No announcements found</td>
+                            </tr>
+                        <?php 
+                            endif;
+                        } catch (PDOException $e) {
+                            error_log("Database error: " . $e->getMessage());
+                            $_SESSION['error'] = "Failed to fetch announcements: " . $e->getMessage();
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+            <div style="text-align:center; margin-top:20px;">
+                <nav aria-label="Announcements Page navigation">
+                    <ul class="pagination">
+                        <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
+                            <a class="page-link" href="?page=<?= $page-1 ?>">Previous</a>
+                        </li>
+                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
+                                <a class="page-link<?php if ($i == $page) echo ' active'; ?>" href="?page=<?= $i ?>"><?= $i ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?php if ($page >= $totalPages) echo 'disabled'; ?>">
+                            <a class="page-link" href="?page=<?= $page+1 ?>">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
         </div>
 
         <!-- Modal for Create Announcement -->
@@ -605,72 +910,6 @@ try {
             </div>
         </div>
 
-        <div class="card" style="margin-top: 20px;">
-            <h2>All Announcements</h2>
-            <table style="width:100%; border-collapse:collapse;">
-                <thead>
-                    <tr style="background:#f0f2f5;">
-                        <th style="padding:12px;">Title</th>
-                        <th style="padding:12px;">Content</th>
-                        <th style="padding:12px;">Posted By</th>
-                        <th style="padding:12px;">Date</th>
-                        <th style="padding:12px;">Status</th>
-                        <th style="padding:12px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    try {
-                        $stmt = $conn->query("
-                            SELECT a.*, adm.First_Name, adm.Last_Name 
-                            FROM announcements a 
-                            LEFT JOIN admins adm ON a.Admin_ID = adm.Admin_ID 
-                            ORDER BY a.Created_At DESC
-                        ");
-                        $announcements = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                        
-                        if (count($announcements) > 0):
-                            foreach ($announcements as $announcement):
-                    ?>
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding:12px; vertical-align:top;"><?php echo htmlspecialchars($announcement['Title']); ?></td>
-                            <td style="padding:12px; vertical-align:top; max-width: 400px; word-wrap: break-word;">
-                                <div style="max-height: 100px; overflow-y: auto;">
-                                    <?php echo nl2br(htmlspecialchars($announcement['Content'])); ?>
-                                </div>
-                            </td>
-                            <td style="padding:12px; vertical-align:top;"><?php echo htmlspecialchars($announcement['First_Name'] . ' ' . $announcement['Last_Name']); ?></td>
-                            <td style="padding:12px; vertical-align:top;"><?php echo date('M d, Y', strtotime($announcement['Created_At'])); ?></td>
-                            <td style="padding:12px; vertical-align:top; text-align:center;">
-                                <?php echo $announcement['Is_Active'] ? 
-                                    '<span style="color:green">Active</span>' : 
-                                    '<span style="color:red">Inactive</span>'; ?>
-                            </td>
-                            <td style="padding:12px; vertical-align:top; text-align:center;">
-                                <div style="display: flex; gap: 8px; justify-content: center;">
-                                    <a href="announcement.php?id=<?php echo $announcement['Announcement_ID']; ?>" class="action-btn view-btn">Edit</a>
-                                    <button onclick="deleteAnnouncement(<?php echo $announcement['Announcement_ID']; ?>)" class="action-btn restrict-btn">Delete</button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php 
-                            endforeach;
-                        else:
-                    ?>
-                        <tr>
-                            <td colspan="6" style="padding:12px; text-align:center; color:#666;">No announcements found</td>
-                        </tr>
-                    <?php 
-                        endif;
-                    } catch (PDOException $e) {
-                        error_log("Database error: " . $e->getMessage());
-                        $_SESSION['error'] = "Failed to fetch announcements: " . $e->getMessage();
-                    }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-
         <!-- Edit Modal -->
         <div id="editModal" class="modal" style="display:none;">
             <div class="modal-content">
@@ -703,12 +942,6 @@ try {
                         <label for="edit_content">Content:</label>
                         <textarea id="edit_content" name="content" required></textarea>
                     </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" name="is_active" id="edit_is_active">
-                            Active
-                        </label>
-                    </div>
                     <div style="margin-top: 20px;">
                         <button type="submit" class="action-btn view-btn">Save Changes</button>
                     </div>
@@ -719,32 +952,36 @@ try {
 
     <script>
         function deleteAnnouncement(id) {
-            if (confirm('Are you sure you want to delete this announcement?')) {
-                fetch('announcement.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=delete&id=${id}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Failed to delete announcement');
-                    }
-                });
-            }
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This announcement will be permanently deleted!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('announcement.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `action=delete_announcement&id=${id}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Deleted!', 'The announcement has been deleted.', 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.message || 'Failed to delete announcement', 'error');
+                        }
+                    });
+                }
+            });
         }
 
         // Modal logic
-        const openModalBtn = document.getElementById('openModalBtn');
         const closeModalBtn = document.getElementById('closeModalBtn');
         const modal = document.getElementById('announcementModal');
-        openModalBtn.onclick = function() {
-            modal.style.display = 'block';
-        }
         closeModalBtn.onclick = function() {
             modal.style.display = 'none';
         }
@@ -756,14 +993,13 @@ try {
 
         // Edit functionality
         function editAnnouncement(id) {
-            fetch(`get_announcement.php?id=${id}`)
+            fetch(`announcement.php?fetch_announcement=1&id=${id}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         document.getElementById('edit_announcement_id').value = data.announcement.Announcement_ID;
                         document.getElementById('edit_title').value = data.announcement.Title;
                         document.getElementById('edit_content').value = data.announcement.Content;
-                        document.getElementById('edit_is_active').checked = data.announcement.Is_Active == 1;
                         document.getElementById('editModal').style.display = 'block';
                     } else {
                         alert('Failed to fetch announcement data');
@@ -785,6 +1021,51 @@ try {
             if (event.target == document.getElementById('editModal')) {
                 document.getElementById('editModal').style.display = 'none';
             }
+        }
+
+        function openAnnouncementModal() {
+            document.getElementById('announcementModal').style.display = 'block';
+        }
+
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your account!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'logout.php';
+                }
+            });
+        }
+
+        function setActiveAnnouncement(id) {
+            Swal.fire({
+                title: 'Set this announcement as active?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, set active'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('announcement.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `action=set_active&id=${id}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            Swal.fire('Error', data.message || 'Failed to set active announcement', 'error');
+                        }
+                    });
+                }
+            });
         }
     </script>
 </body>

@@ -1,4 +1,22 @@
-<?php include 'menuu.php'; ?>
+<?php
+session_start();
+include 'menuu.php';
+require_once 'SkillSwapDatabase.php';
+
+// Create a new database instance
+$db = new Database();
+$conn = $db->getConnection();
+
+// Fetch communities from database using PDO
+try {
+    $query = "SELECT * FROM communities WHERE status = 'Approved' ORDER BY created_at DESC";
+    $stmt = $conn->prepare($query);
+    $stmt->execute();
+    $communities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error = "Failed to fetch communities: " . $e->getMessage();
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -11,7 +29,8 @@
             font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(to right, #fdfd96, #fff);
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
             box-sizing: border-box;
         }
 
@@ -81,21 +100,47 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 20px;
-            height: 400px;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: auto;
+        }
+
+        .community-card-image-container {
+            position: relative;
+            width: 100%;
         }
 
         .community-card img {
             width: 100%;
-            height: 300 px;
+            height: auto;
             border-radius: 10px;
             object-fit: cover;
+            margin-bottom: 0;
+        }
+
+        .community-card .join {
+            position: absolute;
+            bottom: 10px;
+            right: 1px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #7c2ae8;
+            cursor: pointer;
+            margin-top: 0;
+            text-align: right;
+            width: auto;
+            background: rgba(255,255,255,0.85);
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-decoration: none;
         }
 
         .community-card .actions {
             display: flex;
             justify-content: space-between;
-            margin-top: 10px;
+            margin-bottom: 10px;
         }
 
         .community-card .actions button {
@@ -107,12 +152,9 @@
             font-size: 14px;
         }
 
-        .community-card .actions button:hover {
-            background-color: #fce76c;
-        }
-
         .community-card .info {
             margin-top: 10px;
+            flex-grow: 1;
         }
 
         .community-card .info h3 {
@@ -140,154 +182,251 @@
             font-weight: bold;
         }
 
-        .community-card .join {
-            position: inherit;
-            top: 10px;
-            margin-left: 220px;
-            width: 100%;
-            right: 20px;
+        .create-community-container {
+            display: flex;
+            justify-content: flex-end;
+            padding: 20px;
+        }
+
+        #create-community-btn {
+            background-color: white;
+            color: #333;
+            border: 2px solid #fdfd96;
+            border-radius: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
             font-size: 14px;
             font-weight: bold;
-            color: #007bff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        #create-community-btn:hover {
+            background-color: #fdfd96;
+            color: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.31);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            width: 50%;
+            box-shadow: 0 4px 8px rgb(255, 245, 61);
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+        }
+
+        .modal-content label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .modal-content button {
+            background-color: black;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
             cursor: pointer;
-            margin-top: 1px;
+            font-size: 16px;
+        }
+
+        .modal-content button:hover {
+            background-color: rgb(75, 76, 76);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: black;
+        }
+
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <?php if (isset($error)): ?>
+            <div class="error-message"><?php echo $error; ?></div>
+        <?php endif; ?>
+
+        <!-- Create Community Button -->
+        <div class="create-community-container">
+            <button id="create-community-btn" onclick="openCreateCommunityModal()">Create Community</button>
+        </div>
+
         <!-- Search Bar -->
         <div class="search-bar-container">
             <ion-icon name="menu-outline"></ion-icon>
-            <input type="text" class="search-bar" placeholder="Search community">
+            <input type="text" class="search-bar" id="community-search-bar" placeholder="Search community">
             <ion-icon name="search-outline"></ion-icon>
-        </div>
-
-        <!-- Filter Tags -->
-        <div class="filter-tags">
-            <div class="tag">Arts <ion-icon name="close-outline"></ion-icon></div>
-            <div class="tag">Computer <ion-icon name="close-outline"></ion-icon></div>
-            <div class="tag">Programming <ion-icon name="close-outline"></ion-icon></div>
-            <div class="tag">Salon <ion-icon name="close-outline"></ion-icon></div>
-            <ion-icon name="filter-outline" style="font-size: 24px; cursor: pointer;"></ion-icon>
         </div>
 
         <!-- Community Grid -->
         <div class="community-grid">
-            <!-- Community Card 1 -->
-            <div class="community-card">
-                <div class="actions">
-                    <button>Report</button>
-                    <button>Save</button>
-                </div>
-                <img src="comm.jpg" alt="Community Image">
-                <div class="join">
-                    <a href="communitycomm.php" style="text-decoration: none;">Join Community →</a>
-                </div>
-                <div class="info">
-                    <h3>Community Name</h3>
-                    <p>TOPIC</p>
-                    <div class="interests">
-                        <div>Interest 1</div>
-                        <div>Interest 2</div>
-                        <div>Interest 3</div>
+            <?php if (!empty($communities)): ?>
+                <?php foreach ($communities as $community): ?>
+                    <div class="community-card" data-name="<?php echo htmlspecialchars(strtolower($community['name'])); ?>">
+                        <div class="actions">
+                            <button>Report</button>
+                            <button>Save</button>
+                        </div>
+                        <div class="community-card-image-container">
+                            <img src="<?php echo htmlspecialchars($community['image_url']); ?>" alt="Community Image">
+                            <div class="join">
+                                <a href="communitycomm.php?community_id=<?php echo $community['Community_ID']; ?>" style="text-decoration: none;">Join Community →</a>
+                            </div>
+                        </div>
+                        <div class="info">
+                            <h3><?php echo htmlspecialchars($community['name']); ?></h3>
+                            <p><?php echo htmlspecialchars($community['topic']); ?></p>
+                            <div class="interests">
+                                <div><?php echo htmlspecialchars($community['interest1']); ?></div>
+                                <div><?php echo htmlspecialchars($community['interest2']); ?></div>
+                                <div><?php echo htmlspecialchars($community['interest3']); ?></div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                </div>
-                
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>No communities found.</p>
+            <?php endif; ?>
+        </div>
+    </div>
 
-                <div class="community-card">
-                <div class="actions">
-                    <button>Report</button>
-                    <button>Save</button>
-                </div>
-                <img src="comm.jpg" alt="Community Image">
-                <div class="join"><a href="communitycomm.php" style="text-decoration: none;">Join Community →</a></div>
-                <div class="info">
-                    <h3>Community Name</h3>
-                    <p>TOPIC</p>
-                    <div class="interests">
-                        <div>Interest 1</div>
-                        <div>Interest 2</div>
-                        <div>Interest 3</div>
-                    </div>
-                </div>
-                </div>
+    <!-- Create Community Modal -->
+    <div id="create-community-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateCommunityModal()">&times;</span>
+            <h2>Create Community</h2>
+            <form id="create-community-form">
+                <label for="community-name">Community Name:</label>
+                <input type="text" id="community-name" name="community-name" required>
 
-                <div class="community-card">
-                <div class="actions">
-                    <button>Report</button>
-                    <button>Save</button>
-                </div>
-                <img src="comm.jpg" alt="Community Image">
-                <div class="join"><a href="communitycomm.php" style="text-decoration: none;">Join Community →</a></div>
-                <div class="info">
-                    <h3>Community Name</h3>
-                    <p>TOPIC</p>
-                    <div class="interests">
-                        <div>Interest 1</div>
-                        <div>Interest 2</div>
-                        <div>Interest 3</div>
-                    </div>
-                </div>
-                </div>
-                <div class="community-card">
-                <div class="actions">
-                    <button>Report</button>
-                    <button>Save</button>
-                </div>
-                <img src="comm.jpg" alt="Community Image">
-                <div class="join"><a href="communitycomm.php" style="text-decoration: none;">Join Community →</a></div>
-                <div class="info">
-                    <h3>Community Name</h3>
-                    <p>TOPIC</p>
-                    <div class="interests">
-                        <div>Interest 1</div>
-                        <div>Interest 2</div>
-                        <div>Interest 3</div>
-                    </div>
-                </div>
-                </div>
+                <label for="community-topic">Topic:</label>
+                <input type="text" id="community-topic" name="community-topic" required>
 
-                <div class="community-card">
-                <div class="actions">
-                    <button>Report</button>
-                    <button>Save</button>
-                </div>
-                <img src="comm.jpg" alt="Community Image">
-                <div class="join"><a href="communitycomm.php" style="text-decoration: none;">Join Community →</a></div>
-                <div class="info">
-                    <h3>Community Name</h3>
-                    <p>TOPIC</p>
-                    <div class="interests">
-                        <div>Interest 1</div>
-                        <div>Interest 2</div>
-                        <div>Interest 3</div>
-                    </div>
-                </div>
-                </div>
-                <div class="community-card">
-                <div class="actions">
-                    <button>Report</button>
-                    <button>Save</button>
-                </div>
-                <img src="comm.jpg" alt="Community Image">
-                <div class="join"><a href="communitycomm.php" style="text-decoration: none;">Join Community →</a></div>
-                <div class="info">
-                    <h3>Community Name</h3>
-                    <p>TOPIC</p>
-                    <div class="interests">
-                        <div>Interest 1</div>
-                        <div>Interest 2</div>
-                        <div>Interest 3</div>
-                    </div>
-                </div>
-                </div>
-            <!-- Add more community cards as needed -->
+                <label for="interest-1">Interest 1:</label>
+                <input type="text" id="interest-1" name="interest-1" required>
+
+                <label for="interest-2">Interest 2:</label>
+                <input type="text" id="interest-2" name="interest-2" required>
+
+                <label for="interest-3">Interest 3:</label>
+                <input type="text" id="interest-3" name="interest-3" required>
+
+                <label for="community-image">Community Picture:</label>
+                <input type="file" id="community-image" name="community-image" accept="image/*">
+
+                <button type="button" onclick="createCommunity()">Create</button>
+            </form>
         </div>
     </div>
 
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <script>
+        function openCreateCommunityModal() {
+            document.getElementById('create-community-modal').style.display = 'block';
+        }
+
+        function closeCreateCommunityModal() {
+            document.getElementById('create-community-modal').style.display = 'none';
+        }
+
+        function createCommunity() {
+            const communityName = document.getElementById('community-name').value.trim();
+            const communityTopic = document.getElementById('community-topic').value.trim();
+            const interest1 = document.getElementById('interest-1').value.trim();
+            const interest2 = document.getElementById('interest-2').value.trim();
+            const interest3 = document.getElementById('interest-3').value.trim();
+            const communityImage = document.getElementById('community-image').files[0];
+
+            if (!communityName || !communityTopic || !interest1 || !interest2 || !interest3) {
+                alert('Please fill out all fields.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('name', communityName);
+            formData.append('topic', communityTopic);
+            formData.append('interest1', interest1);
+            formData.append('interest2', interest2);
+            formData.append('interest3', interest3);
+            if (communityImage) {
+                formData.append('image', communityImage);
+            }
+
+            fetch('add_community.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Reload the page to show the new community
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while creating the community.');
+            });
+        }
+
+        document.getElementById('community-search-bar').addEventListener('input', function () {
+            const searchValue = this.value.toLowerCase().trim();
+            const communityCards = document.querySelectorAll('.community-card');
+
+            communityCards.forEach(card => {
+                const communityName = card.getAttribute('data-name');
+                if (communityName.includes(searchValue)) {
+                    card.style.display = 'block'; // Show the card
+                } else {
+                    card.style.display = 'none'; // Hide the card
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -29,6 +29,7 @@ $admin_role = $_SESSION['admin_role'];
     <title>SkillSwap Admin - Manage Admins</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
             margin: 0;
@@ -94,36 +95,37 @@ $admin_role = $_SESSION['admin_role'];
         }
 
         .sidebar-menu {
-            list-style: none;
-        }
-
-        .sidebar-menu li {
-            margin-bottom: 10px;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            color: #333;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-menu a:hover {
-            background: #f0f2f5;
-        }
-
-        .sidebar-menu a.active {
-            background: #ffeb3b;
-            color: #000;
-        }
-
-        .sidebar-menu i {
-            font-size: 20px;
-        }
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.sidebar-menu li {
+    margin-bottom: 18px; /* Consistent spacing */
+}
+.sidebar-menu li:last-child {
+    margin-bottom: 0;
+}
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    color: #333;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 18px;
+}
+.sidebar-menu a:hover {
+    background: #f0f2f5;
+}
+.sidebar-menu a.active {
+    background: #ffeb3b;
+    color: #000;
+}
+.sidebar-menu i {
+    font-size: 20px;
+}
 
         .main-content {
             margin-left: 250px;
@@ -203,7 +205,7 @@ $admin_role = $_SESSION['admin_role'];
                 <div class="admin-name"><?php echo htmlspecialchars($admin_name); ?></div>
                 <div class="admin-role"><?php echo ucfirst($admin_role); ?></div>
             </div>
-            <a href="logout.php" style="color: #666; text-decoration: none;">
+            <a href="#" onclick="confirmLogout()" style="color: #666; text-decoration: none;">
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </div>
@@ -224,7 +226,6 @@ $admin_role = $_SESSION['admin_role'];
                     Manage Users
                 </a>
             </li>
-
             <li>
                 <a href="Reports.php" class="active">
                     <i class="fas fa-flag"></i>
@@ -237,21 +238,23 @@ $admin_role = $_SESSION['admin_role'];
                     Announcement
                 </a>
             </li>
+            <?php if ($admin_role === 'super_admin'): ?>
             <li>
-                <a href="manage_admins.php" >
+                <a href="manage_admins.php">
                     <i class="fas fa-user-shield"></i>
                     Manage Admins
                 </a>
             </li>
+            <?php endif; ?>
             <li>
                 <a href="manageposts.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-thumbtack"></i>
                     Manage Posts
                 </a>
             </li>
             <li>
                 <a href="Community.php">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-users-cog"></i>
                     Community
                 </a>
             </li>
@@ -303,5 +306,22 @@ $admin_role = $_SESSION['admin_role'];
             </table>
         </div>
     </div>
+    <script>
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your account!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'logout.php';
+                }
+            });
+        }
+    </script>
 </body>
 </html> 
