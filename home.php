@@ -45,6 +45,7 @@ try {
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Great+Vibes:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     <style>
+         @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
         body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
@@ -109,7 +110,7 @@ try {
         }
 
         .user-greeting .skillswap {
-            font-family: 'Great Vibes', cursive;
+            font-family: 'Luckiest Guy', cursive, Arial, sans-serif;
             font-size: 100px;
             font-weight: bold;
             color: #000;

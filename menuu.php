@@ -30,6 +30,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Great+Vibes:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
         :root {
             --bg-color: #ffffff;
             --text-color: #333333;
@@ -47,7 +48,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         body {
-            font-family: 'Great Vibes', cursive; /* Use the fancy font */
+            font-family: 'Luckiest Guy', cursive, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -79,7 +80,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         .nav-container .logo {
             font-size: 1.8rem;
             font-weight: bold;
-            font-family: 'Great Vibes', cursive; /* Use the fancy font */
+            font-family: 'Luckiest Guy', cursive, Arial, sans-serif;
             color: var(--primary-color);
             display: flex;
             align-items: center;
@@ -305,7 +306,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         .header .logo {
             font-size: 30px;
             font-weight: bold;
-            font-family: 'Great Vibes', cursive; /* Use the fancy font */
+            font-family: 'Luckiest Guy', cursive, Arial, sans-serif;
         }
         .header nav {
             display: flex;

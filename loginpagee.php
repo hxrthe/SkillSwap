@@ -161,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
         .input-box {
             position: relative;
         }
@@ -384,7 +385,7 @@ Swal.fire({
 
         <div class="toggle-box">
             <div class="toggle-panel toggle-left">
-                <h1>SKILLSWAP</h1>
+                <h1 style="font-family: 'Luckiest Guy', cursive, Arial, sans-serif;">SKILLSWAP</h1>
                 <p>Don't have an account yet?</p>
                 <button class="btn register-btn">Sign Up</button>
             </div>

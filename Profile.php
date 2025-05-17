@@ -609,7 +609,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
     </style>
 </head>
 <body>
-    <?php include 'Menu2.php'; ?>
+    <?php include 'menuu.php'; ?>
 
     <div class="profile-container">
         <?php
