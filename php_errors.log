@@ -1,3 +1,5 @@
+<?php
+error_log("Incoming Requests: " . print_r($requests, true));
 [10-May-2025 15:30:01 Europe/Berlin] Profile picture upload started
 [10-May-2025 15:30:01 Europe/Berlin] File type detected: image/jpeg
 [10-May-2025 15:30:01 Europe/Berlin] Image data read successfully, size: 32291

@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
 
         .container {
             padding: 20px;
-            max-width: 750px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -529,9 +529,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
 </head>
 <body>
     <div class="container">
-        <a href="communitycomm.php?community_id=<?php echo urlencode($post['Community_ID']); ?>" class="back-button">&lt; Back to Posts</a>
 
         <div class="main-container">
+                    <a href="communitycomm.php?community_id=<?php echo urlencode($post['Community_ID']); ?>" class="back-button">&lt; Back to Posts</a>
+
             <div class="post-container">
                 <div class="post-header">
                     <img src="<?php echo $opPic; ?>" alt="Profile Picture">

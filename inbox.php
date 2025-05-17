@@ -77,12 +77,29 @@ $sentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 error_log("Sent Requests: " . print_r($sentRequests, true));
 
 // Fetch ongoing requests
-$stmt = $conn->prepare("SELECT r.*, u.First_Name AS receiver_name FROM requests r JOIN users u ON r.receiver_id = u.User_ID WHERE (r.sender_id = :user_id OR r.receiver_id = :user_id) AND r.status = 'accepted' ORDER BY r.created_at DESC");
+$stmt = $conn->prepare("
+    SELECT r.*, 
+        us.First_Name AS sender_name, us.Last_Name AS sender_last_name, 
+        ur.First_Name AS receiver_name, ur.Last_Name AS receiver_last_name
+    FROM requests r
+    JOIN users us ON us.User_ID = r.sender_id
+    JOIN users ur ON ur.User_ID = r.receiver_id
+    WHERE (r.sender_id = :user_id OR r.receiver_id = :user_id)
+    AND r.status = 'accepted'
+    ORDER BY r.created_at DESC
+");
 $stmt->execute([':user_id' => $_SESSION['user_id']]);
 $ongoingRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch completed requests
-$stmt = $conn->prepare("SELECT r.*, u.First_Name AS receiver_name FROM requests r JOIN users u ON r.receiver_id = u.User_ID WHERE r.sender_id = :sender_id AND r.status = 'completed' ORDER BY r.created_at DESC");
+$stmt = $conn->prepare("
+    SELECT r.*, u.First_Name AS receiver_name 
+    FROM requests r 
+    JOIN users u ON r.receiver_id = u.User_ID 
+    WHERE r.sender_id = :sender_id 
+    AND r.status = 'completed' 
+    ORDER BY r.created_at DESC
+");
 $stmt->execute([':sender_id' => $_SESSION['user_id']]);
 $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -108,9 +125,9 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
             margin-right: 20px;
             display: flex;
             justify-content: space-around; /* Space tabs evenly */
-            margin-bottom: 20px;
+            /* margin-bottom: 20px; */
             background-color: #fdfd96; /* Light yellow background */
-            border-radius: 5px;
+            border-radius: 5px 5px 0 0;
             padding: 10px 0;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for the tab container */
         }
@@ -252,16 +269,17 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .modal {
+            display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5);
             justify-content: center;
             align-items: center;
             z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
         }
 
         .modal-content {
@@ -426,7 +444,17 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <?php if (count($ongoingRequests) > 0): ?>
             <?php foreach ($ongoingRequests as $request): ?>
                 <div class="request">
-                    <h3>Ongoing with <?php echo htmlspecialchars($user['First_Name']); ?></h3>
+                    <h3>
+                        Ongoing with 
+                        <?php
+                        // Show the other user's name
+                        if ($currentUserId == $request['sender_id']) {
+                            echo htmlspecialchars($request['receiver_name'] . ' ' . $request['receiver_last_name']);
+                        } else {
+                            echo htmlspecialchars($request['sender_name'] . ' ' . $request['sender_last_name']);
+                        }
+                        ?>
+                    </h3>
                     <p><?php echo htmlspecialchars($request['message']); ?></p>
 
                     <?php if (!$request['schedule_confirmed']): ?>
@@ -477,9 +505,9 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <!-- Modal -->
-    <div id="saveModal" class="modal" style="display: none;">
+    <div id="saveModal" class="modal">
         <div class="modal-content">
-            <p>Schedule saved successfully!</p>
+            <p id="saveModalMessage"></p>
             <button onclick="closeModal()">OK</button>
         </div>
     </div>
@@ -513,31 +541,53 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `request_id=${requestId}&schedule=${encodeURIComponent(schedule)}`
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Show the modal
-                        document.getElementById('saveModal').style.display = 'flex';
+            .then(response => response.json())
+            .then(data => {
+                // Get the modal and message element
+                const modal = document.getElementById('saveModal');
+                const message = document.getElementById('saveModalMessage');
 
-                        // Update the other user's availability dynamically
-                        const otherAvailability = document.getElementById(`other-availability-${requestId}`);
-                        otherAvailability.innerHTML = `<p>${schedule}</p>`;
-
-                        // Check if both schedules are saved and redirect to chat
-                        if (data.schedule_confirmed) {
-                            setTimeout(() => {
-                                window.location.href = `chat_view.php?request_id=${requestId}`;
-                            }, 2000); // Redirect after 2 seconds
+                if (data.success) {
+                    // Determine the other user's name
+                    let otherUserName = '';
+                    <?php
+                    // Prepare a JS object mapping requestId to other user's name
+                    $ongoingUserMap = [];
+                    foreach ($ongoingRequests as $req) {
+                        if ($currentUserId == $req['sender_id']) {
+                            $otherName = htmlspecialchars($req['receiver_name'] . ' ' . $req['receiver_last_name']);
+                        } else {
+                            $otherName = htmlspecialchars($req['sender_name'] . ' ' . $req['sender_last_name']);
                         }
-                    } else {
-                        alert('Error: ' + data.error);
+                        $ongoingUserMap[$req['id']] = $otherName;
                     }
-                })
-                .catch(error => console.error('Error:', error));
+                    ?>
+                    const userMap = <?php echo json_encode($ongoingUserMap); ?>;
+                    otherUserName = userMap[requestId];
+
+                    // Show appropriate message
+                    if (data.schedule_confirmed) {
+                        message.textContent = "Both of you have added your schedule. You can now chat!";
+                    } else {
+                        message.textContent = `Let's wait for ${otherUserName} to add their schedule.`;
+                    }
+                    modal.classList.add('active');
+
+                    // If both have added, optionally redirect to chat after a short delay
+                    if (data.schedule_confirmed) {
+                        setTimeout(() => {
+                            window.location.href = `chat_view.php?request_id=${requestId}`;
+                        }, 2000);
+                    }
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
         }
 
         function closeModal() {
-            document.getElementById('saveModal').style.display = 'none';
+            document.getElementById('saveModal').classList.remove('active');
         }
 
         function acceptRequest(requestId) {
@@ -548,7 +598,7 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     body: `request_id=${requestId}`
                 })
                 .then(response => response.json())
-                .then(data => {
+                .then (data => {
                     if (data.success) {
                         alert('Request accepted successfully!');
                         location.reload(); // Reload the page to update the Requests tab
@@ -604,7 +654,7 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
             window.location.href = `chat_view.php?request_id=${requestId}`;
         }
 
-        document.querySelector('.tab[onclick="showTab(\'requests\')"]').addEventListener('click', loadRequests);
+        // document.querySelector('.tab[onclick="showTab(\'requests\')"]').addEventListener('click', loadRequests);
 
         function fetchIncomingRequests() {
             fetch(`fetch_incoming_requests.php?timestamp=${new Date().getTime()}`)

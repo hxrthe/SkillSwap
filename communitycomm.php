@@ -160,7 +160,7 @@ include 'menuu.php';
 
         .container {
             padding: 20px;
-            max-width: 750px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -469,9 +469,10 @@ include 'menuu.php';
 </head>
 <body>
     <div class="container">
-        <a href="community.php" class="back-button">&lt; Back</a>
-
+        
         <div class="posts-background">
+            <a href="community.php" class="back-button">&lt; Back</a>
+
             <div class="create-post">
                 <form method="POST" action="">
                     <div class="post-input">
