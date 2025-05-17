@@ -1,202 +1,130 @@
 <?php include 'menu.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ABOUT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABOUT US</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
+
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #FFEA61;
-      color: #000;
-      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #fdfd96, #fff);
+      color: #f2f2f2;
     }
 
-    h1 {
+    h2 {
+      font-size: 2.5rem;
+      font-family: 'Roboto Slab';
+      background: #000000;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 40px;
+    }
+
+    .service-card {
+      background-color: #1a1a1a;
+      border-radius: 12px;
+      padding: 30px 30px;
+      border: 2px solid transparent;
+      transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
       text-align: center;
-      color: #000;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 40px;
-      margin-top: 40px;
-    }
-
-    .card {
-      position: relative;
-      width: 90%;
-      max-width: 700px;
-      background-color: #111;
-      border: 2px solid #FFD700;
-      border-radius: 10px;
-      overflow: hidden;
-      display: flex;
-      margin-top: 20px; 
-    }
-
-    .card.right {
-      flex-direction: row-reverse;
-      margin-left: 50px;
-    }
-
-    .container .card:nth-child(1) {
-      margin-top: 50px;
-      transform: translateX(-380px); 
-    }
-
-    .container .card:nth-child(2) {
-      margin-top: -340px; 
-      transform: translateX(350px); 
-    }
-
-    .container .card:nth-child(3) {
-      margin-top: 10px; 
-      transform: translateX(380px); 
-    }
-
-    .container .card:nth-child(4) {
-      margin-top: -340px; 
-      transform: translateX(-400px); 
-    }
-
-    .card-image-container {
-      width: 50%;
-      height: 300px;
-      overflow: hidden;
       cursor: pointer;
-    }
-
-    .card img {
-      width: 100%;
       height: 100%;
-      object-fit: cover;
-      display: block;
     }
 
-    .info {
-      width: 50%;
-      height: 300px;
-      background-color: rgba(0, 0, 0, 0.9);
-      color: #FFD700;
-      padding: 20px;
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-      text-align: center;
+    .service-card:hover {
+      border-color: #ffd54f;
+      box-shadow: 0 0 15px rgba(255, 213, 79, 0.5);
+      transform: scale(1.05); /* Slight scale effect */
+      background-color: #333; /* Slight darkening of the background */
     }
 
-    .placeholder {
-      font-size: 1.8em;
+    .service-card i {
+      font-size: 40px;
+      color: #fdd835;
+      margin-bottom: 15px;
+      transition: color 0.3s;
+    }
+
+    .service-card:hover i {
+      color: #ffeb3b;
+    }
+
+    .service-title {
       font-weight: bold;
-      transition: opacity 0.4s ease;
-      position: absolute;
-      z-index: 1;
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      color: #fdd835;
     }
 
-    .info-text {
-      position: absolute;
-      opacity: 0;
-      z-index: 2;
-      transform: translateX(-100%);
-      transition: transform 0.5s ease, opacity 0.5s ease;
-    }
-
-    .card.right .info-text {
-      transform: translateX(100%);
-    }
-
-    .card:hover .placeholder {
-      opacity: 0;
-    }
-
-    .card:hover .info-text {
-      transform: translateX(0);
-      opacity: 1;
-    }
-
-    .info-text ul {
-      list-style-type: disc;
-      margin-left: 20px;
+    .service-text {
+      font-size: 0.95rem;
+      color: #d6d6d6;
     }
   </style>
 </head>
 <body>
+  <section class="py-5 text-center">
+    <div class="container">
+      <h2>SKILLSWAP</h2>
+      <div class="row g-4 justify-content-center">
+        <!-- First 3 cards -->
+        <div class="col-md-6 col-lg-4">
+          <div class="service-card h-100">
+            <i class="fas fa-signal"></i>
+            <div class="service-title">Skill Exchange System</div>
+            <div class="service-text">SKILLSWAP is built around the concept of peer-to-peer skill sharing through a modern barter system. Users can offer their own skills—such as graphic design, cooking, coding, or photography—in exchange for a skill they want to learn. This structure removes the need for money in most learning interactions and creates a mutually beneficial learning environment where every user is both a student and a teacher.</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="service-card h-100">
+            <i class="fas fa-layer-group"></i>
+            <div class="service-title">Free Learning Opportunities</div>
+            <div class="service-text">One of the core goals of SKILLSWAP is to provide accessible education by enabling users to learn new skills without financial cost. By trading time and knowledge instead of money, the platform ensures that anyone, regardless of their economic status, can continue developing their talents and gaining practical knowledge in a wide range of fields.</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="service-card h-100">
+            <i class="fas fa-user-friends"></i>
+            <div class="service-title">Mentorship</div>
+            <div class="service-text">SKILLSWAP offers a mentorship feature for users who want structured, expert-led learning. Experienced users can list specific skills they mentor in, and others can pay for one-on-one sessions or guidance. This feature adds a professional layer to the platform and helps mentors earn from their expertise while helping others grow.</div>
+          </div>
+        </div>
 
-  <div class="container">
-    <!-- Card 1 - SKILLSWAP -->
-    <div class="card">
-      <div class="card-image-container">
-        <img src="https://scontent.fmnl34-1.fna.fbcdn.net/v/t1.15752-9/482954870_1345965966623948_5736240018260320208_n.png?stp=dst-png_p480x480&_nc_cat=102&ccb=1-7&_nc_sid=0024fc&_nc_eui2=AeGcVN6KdfmUjYMfK9SWadfDsaPUWSiNab-xo9RZKI1pv8Gl_Rd2KNU-8QEDdVil_a-y3YSELzQzuElpiBqHf70U&_nc_ohc=zasVqMshDogQ7kNvwH1GP2T&_nc_oc=Adney4L-IXWwyD-sWLKS0pNjoa1GCjcTCs-AkQUsrHx-gO0hVCaNDVEbY6CeTf3rT2T-aLbqtdJdZHYmWQJesJus&_nc_ad=z-m&_nc_cid=5917&_nc_zt=23&_nc_ht=scontent.fmnl34-1.fna&oh=03_Q7cD2AHUBbG2shl32Rs1Atr-WFC3GVpO0NkWuxnCc1syjsS5mg&oe=683D224F" alt="SkillSwap">
-      </div>
-      <div class="info">
-        <div class="placeholder">SKILLSWAP</div>
-        <div class="info-text">
-          <p><strong>SkillSwap</strong> is a local, community-based platform designed to empower individuals by exchanging knowledge and skills. It operates like a modern barter system for expertise, where people can teach and learn from each other, all without monetary transactions.</p>
+        <!-- Next 3 cards -->
+        <div class="col-md-6 col-lg-4">
+          <div class="service-card h-100">
+            <i class="fas fa-cogs"></i>
+            <div class="service-title">Community-Based Interaction</div>
+            <div class="service-text">To enhance collaboration and engagement, SKILLSWAP includes community spaces where users can connect based on the skills they offer or want to learn. These communities act as discussion groups or forums where members can share resources, post learning tips, ask questions, and support one another. This encourages long-term relationships and peer learning beyond individual skill swaps.</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="service-card h-100">
+            <i class="fas fa-chart-line"></i>
+            <div class="service-title">User-Controlled Bartering</div>
+            <div class="service-text">Each user has full autonomy over the exchange process. When a barter request is received, the user can review the details—including the skill offered, the skill requested, and the user's profile—before choosing to accept or decline. This system gives users the freedom to manage their own learning journey and ensures that exchanges only happen when both parties agree.</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="service-card h-100">
+            <i class="fas fa-mobile-alt"></i>
+            <div class="service-title">Empowering Growth Through Connection</div>
+            <div class="service-text">At its core, SKILLSWAP is designed to foster personal and collective growth. By creating a space where people can share their abilities, gain new knowledge, and connect with others who have similar goals, the platform encourages users to build confidence, discover new opportunities, and support one another in their learning journeys.</div>
+          </div>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- Card 2 - FEATURES -->
-    <div class="card right">
-      <div class="card-image-container">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRtQaYtaQ_zo32rb4uQpaIbFMV8XgBAl56QA&s" alt="Features">
-      </div>
-      <div class="info">
-        <div class="placeholder">FEATURES</div>
-        <div class="info-text">
-          <ul>
-            <li><strong>Skill Exchange:</strong> Offer your skills and learn new ones from others in your community.</li>
-            <li><strong>Community Building:</strong> Foster meaningful connections through shared learning experiences.</li>
-            <li><strong>Free of Charge:</strong> No money involved, just a passion for learning and teaching.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 3 - HOW IT WORKS -->
-    <div class="card">
-      <div class="card-image-container">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAwTfNQvrUBLqS082BWSr2vUQrcOLzPYgjfg&s" alt="How It Works">
-      </div>
-      <div class="info">
-        <div class="placeholder">HOW IT WORKS</div>
-        <div class="info-text">
-          <ol>
-            <li><strong>Sign Up:</strong> Create an account on the platform.</li>
-            <li><strong>List Your Skills:</strong> Share what you can teach and specify what you're interested in learning.</li>
-            <li><strong>Connect:</strong> Find individuals who match your interests and start swapping skills.</li>
-            <li><strong>Collaborate:</strong> Schedule sessions and engage in productive skill exchanges.</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 4 - WHY SKILLSWAP? -->
-    <div class="card right">
-      <div class="card-image-container">
-        <img src="https://cdn.elearningindustry.com/wp-content/uploads/2019/10/7-Benefits-That-Highlight-The-Importance-Of-Soft-Skills-In-The-Workplace.png" alt="Why SkillSwap?">
-      </div>
-      <div class="info">
-        <div class="placeholder">WHY SKILLSWAP?</div>
-        <div class="info-text">
-          <ul>
-            <li><strong>Accessibility:</strong> Learning opportunities for everyone, regardless of financial status.</li>
-            <li><strong>Empowerment:</strong> Share your expertise and enrich others' lives.</li>
-            <li><strong>Sustainability:</strong> Promote a culture of generosity and mutual growth.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
