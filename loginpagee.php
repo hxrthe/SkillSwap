@@ -301,6 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
         }
         body {
             margin-top: 60px;
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
         }
     </style>
 </head>
@@ -336,12 +338,12 @@ Swal.fire({
                     <a href="#" onclick="showForgotPasswordModal()">Forgot password?</a>
                 </div>
                 <button type="submit" class="btn">Sign In</button>
-                <p>or login with social platforms</p>
+                <!-- <p>or login with social platforms</p>
                 <div class="social-icons">
                     <a href="#"><i class='bx bxl-facebook'></i></a>
                     <a href="#"><i class='bx bxl-google'></i></a>
                     <a href="#"><i class='bx bxl-linkedin'></i></a>
-                </div>
+                </div> -->
             </form>
         </div>
         
@@ -371,12 +373,12 @@ Swal.fire({
                     <i class='bx bxs-lock-alt'></i>
                 </div>
                 <button type="submit" class="btn">Sign Up</button>
-                <p>or register with social platforms</p>
+                <!-- <p>or register with social platforms</p>
                 <div class="social-icons">
                     <a href="#"><i class='bx bxl-facebook'></i></a>
                     <a href="#"><i class='bx bxl-google'></i></a>
                     <a href="#"><i class='bx bxl-linkedin'></i></a>
-                </div>
+                </div> -->
             </form>
         </div>
 

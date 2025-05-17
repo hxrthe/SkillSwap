@@ -154,6 +154,8 @@
 
   <div class="contact-form">
     <h2>Send us a message</h2>
+    <!-- Back Button -->
+    <button onclick="history.back()" class="send-btn mt-3 mb-3">Back</button>
     <form>
       <div class="row">
         <div class="col-md-6">
