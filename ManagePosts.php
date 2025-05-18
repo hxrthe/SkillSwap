@@ -468,6 +468,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     Community
                 </a>
             </li>
+            <li>
+                <a href="managecomplaints.php">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Manage Complaints
+                </a>
+            </li>
         </ul>
     </div>
 
