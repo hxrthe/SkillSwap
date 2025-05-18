@@ -571,7 +571,8 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     } else {
                         message.textContent = `Let's wait for ${otherUserName} to add their schedule.`;
                     }
-                    modal.classList.add('active');
+                    modal.classList.add('active'); // To show
+                    modal.classList.remove('active'); // To hide
 
                     // If both have added, optionally redirect to chat after a short delay
                     if (data.schedule_confirmed) {
@@ -646,9 +647,9 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 .catch(error => console.error('Error fetching requests:', error));
         }
 
-        function showModal() {
-            document.getElementById('saveModal').style.display = 'flex';
-        }
+        // function showModal() {
+        //     document.getElementById('saveModal').style.display = 'flex';
+        // }
 
         function proceedToChat(requestId) {
             window.location.href = `chat_view.php?request_id=${requestId}`;

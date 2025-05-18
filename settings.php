@@ -14,75 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn = $db->getConnection();
     
     try {
-        // Save all changes at once
-        if (isset($_POST['save_all'])) {
-            $hasErrors = false;
-            
-            // Update profile
-            if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['email'])) {
-                $firstName = $_POST['first_name'];
-                $lastName = $_POST['last_name'];
-                $email = $_POST['email'];
-                
-                try {
-                    $stmt = $conn->prepare("CALL skillswap.UpdateUserProfile(:user_id, :first_name, :last_name, :email)");
-                    $stmt->execute([
-                        ':user_id' => $_SESSION['user_id'],
-                        ':first_name' => $firstName,
-                        ':last_name' => $lastName,
-                        ':email' => $email
-                    ]);
-                } catch (Exception $e) {
-                    $_SESSION['error_message'] = "Error updating profile: " . $e->getMessage();
-                    $hasErrors = true;
-                }
-            }
-            
-            // Update password if provided
-            if (isset($_POST['current_password']) && isset($_POST['new_password'])) {
-                $currentPassword = $_POST['current_password'];
-                $newPassword = $_POST['new_password'];
-                
-                try {
-                    $stmt = $conn->prepare("CALL skillswap.UpdateUserPassword(:user_id, :current_password, :new_password)");
-                    $stmt->execute([
-                        ':user_id' => $_SESSION['user_id'],
-                        ':current_password' => $currentPassword,
-                        ':new_password' => $newPassword
-                    ]);
-                } catch (PDOException $e) {
-                    if (strpos($e->getMessage(), 'Current password is incorrect') !== false) {
-                        $_SESSION['error_message'] = "Current password is incorrect!";
-                    } else {
-                        $_SESSION['error_message'] = "Error updating password: " . $e->getMessage();
-                    }
-                    $hasErrors = true;
-                }
-            }
-            
-            // Update theme
-            if (isset($_POST['theme'])) {
-                $theme = $_POST['theme'];
-                
-                try {
-                    $stmt = $conn->prepare("CALL skillswap.UpdateUserTheme(:user_id, :theme)");
-                    $stmt->execute([
-                        ':user_id' => $_SESSION['user_id'],
-                        ':theme' => $theme
-                    ]);
-                    
-                    $_SESSION['theme'] = $theme;
-                } catch (Exception $e) {
-                    $_SESSION['error_message'] = "Error updating theme: " . $e->getMessage();
-                    $hasErrors = true;
-                }
-            }
-            
-            if (!$hasErrors) {
-                $_SESSION['success_message'] = "All changes saved successfully!";
-            }
-        }
-        
         // Individual updates (keep existing functionality)
         if (isset($_POST['update_profile'])) {
             $firstName = $_POST['first_name'];
@@ -234,7 +165,7 @@ if (!isset($_SESSION['theme'])) {
         input[type="email"],
         input[type="password"],
         select {
-            width: 100%;
+            width: 96%;
             padding: 12px;
             border: 2px solid #ddd;
             border-radius: 10px;
@@ -331,15 +262,21 @@ if (!isset($_SESSION['theme'])) {
             --primary-color: #66BB6A;
         }
 
-        /* Smooth theme transition */
         .theme-transition {
             transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .swal2-confirm:hover {
+            background-color: #388e3c !important;
+        }
+        .swal2-cancel:hover {
+            background-color: #b71c1c !important;
         }
     </style>
 </head>
 <body data-theme="<?php echo $_SESSION['theme']; ?>">
     <div class="container">
-        <div class="back-button" onclick="history.back()">
+        <div class="back-button" onclick="window.location.href='Profile.php'">
             <i class='bx bx-arrow-back'></i> Back
         </div>
 
@@ -417,45 +354,53 @@ if (!isset($_SESSION['theme'])) {
             </form>
         </div>
 
-        <!-- Save All Changes -->
-        <div class="settings-card">
-            <h2>Save All Changes</h2>
-            <form action="settings.php" method="POST">
-                <div class="form-group">
-                    <input type="hidden" name="save_all" value="1">
-                    <button type="submit" class="save-all-button">Save All Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <style>
-        .save-all-button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .save-all-button:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
-    </style>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Add smooth transition for theme changes
         document.addEventListener('DOMContentLoaded', function() {
             document.body.classList.add('theme-transition');
             setTimeout(() => {
                 document.body.classList.remove('theme-transition');
             }, 1000);
+
+            const profileForm = document.querySelector('form[action="settings.php"]:not([id])');
+            if (profileForm) {
+                profileForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Update Profile',
+                        text: "Are you sure you want to update your profile information?",
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#4CAF50',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Update Profile'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            profileForm.submit();
+                        }
+                    });
+                });
+            }
+
+            const passwordForm = document.querySelector('form[action="settings.php"] input[name="update_password"]').closest('form');
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Change Password',
+                        text: "Are you sure you want to change your password?",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#4CAF50',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Change Password'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            passwordForm.submit();
+                        }
+                    });
+                });
+            }
         });
     </script>
 </body>
