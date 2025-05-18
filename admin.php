@@ -566,6 +566,12 @@ body {
                     Community
                 </a>
             </li>
+            <li>
+                <a href="managecomplaints.php">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Manage Complaints
+                </a>
+            </li>
         </ul>
     </div>
 

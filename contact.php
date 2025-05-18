@@ -1,5 +1,33 @@
 <?php include 'menu.php'; ?>
 
+<?php
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $conn = new mysqli("localhost", "root", "", "skillswap");
+
+  if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+  }
+
+  $name = $_POST['name'];
+  $email = $_POST['email'];
+  $contact_no = $_POST['contact_no'];
+  $message = $_POST['message'];
+
+  $stmt = $conn->prepare("INSERT INTO complaints (name, email, contact_no, message, status) VALUES (?, ?, ?, ?, 'Pending')");
+  $stmt->bind_param("ssss", $name, $email, $contact_no, $message);
+
+  if ($stmt->execute()) {
+    echo "<script>alert('Complaint submitted successfully!');</script>";
+  } else {
+    echo "<script>alert('Error: " . $stmt->error . "');</script>";
+  }
+
+  $stmt->close();
+  $conn->close();
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +49,7 @@
     }
 
     .contact-info {
-     background: linear-gradient(to right, #fdfd96, #fff);
+      background: linear-gradient(to right, #fdfd96, #fff);
       color: #ffcc00;
       padding: 40px 30px;
       width: 40%;
@@ -43,7 +71,7 @@
       margin-bottom: 40px;
       line-height: 1.5;
       margin-left: 10px;
-      color:rgb(6, 3, 3);
+      color: rgb(6, 3, 3);
     }
 
     .contact-info .info-item {
@@ -156,26 +184,14 @@
 
   <div class="contact-form">
     <h2>Send us a message</h2>
-    <!-- Back Button -->
     <button onclick="history.back()" class="send-btn mt-3 mb-3">Back</button>
-    <form>
-      <div class="row">
-        <div class="col-md-6">
-          <input type="text" class="form-control" placeholder="First Name" required>
-        </div>
-        <div class="col-md-6">
-          <input type="text" class="form-control" placeholder="Last Name" required>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-6">
-          <input type="email" class="form-control" placeholder="Mail" required>
-        </div>
-        <div class="col-md-6">
-          <input type="text" class="form-control" placeholder="Phone" required>
-        </div>
-      </div>
-      <textarea class="form-control" rows="5" placeholder="Write your message" required></textarea>
+
+    <!-- 📌 Updated Form -->
+    <form method="POST" action="">
+      <input type="text" name="name" class="form-control" placeholder="Name" required>
+      <input type="email" name="email" class="form-control" placeholder="Email" required>
+      <input type="text" name="contact_no" class="form-control" placeholder="Phone" required>
+      <textarea name="message" class="form-control" rows="5" placeholder="Write your message" required></textarea>
       <button type="submit" class="send-btn mt-3">Send Message</button>
     </form>
   </div>
