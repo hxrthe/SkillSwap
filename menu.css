@@ -3,7 +3,11 @@
 
 /* General Styling */
 body {
+<<<<<<< HEAD
     font-family: Arial, sans-serif;
+=======
+    font-family: 'Great Vibes', cursive; /* Use the fancy font */
+>>>>>>> maris
     margin: 0;
     padding: 0;
     box-sizing: border-box;

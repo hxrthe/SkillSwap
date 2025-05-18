@@ -49,8 +49,9 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(to right, #fdfd96, #fff);
+            padding: 0;
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
         }
 
         .chat-container {
@@ -79,13 +80,72 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
         }
 
         .chat-messages {
-            height: 300px;
+            height: 400px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
+            padding: 20px;
             margin-bottom: 20px;
-            background-color: #fdfd96;
-            border-radius: 5px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-container {
+            margin-bottom: 15px;
+            width: 100%;
+            clear: both;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            margin: 4px 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+        }
+
+        .message.received {
+            background-color: #f0f0f0;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            margin-left: 10px;
+        }
+
+        .message.sent {
+            background-color: #0084ff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-text {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 11px;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        .message.received .message-time {
+            color: #666;
+        }
+
+        .message.sent .message-time {
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .chat-input {
@@ -163,7 +223,7 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
             }
 
             .chat-messages {
-                height: 200px; /* Further adjust height for very small screens */
+                height: 200px;
             }
 
             .chat-input input,
@@ -217,20 +277,39 @@ $other_user_name = ($_SESSION['user_id'] == $request['sender_id']) ? $request['r
         }
 
         function loadMessages(requestId) {
+            const chatMessages = document.getElementById('chat-messages');
+            const wasScrolledToBottom = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
+            const previousHeight = chatMessages.scrollHeight;
+
             fetch(`fetch_messages.php?request_id=${requestId}`)
                 .then(response => response.json())
                 .then(messages => {
-                    const chatMessages = document.getElementById('chat-messages');
                     chatMessages.innerHTML = ''; // Clear existing messages
 
                     messages.forEach(msg => {
-                        const messageElement = document.createElement('div');
-                        messageElement.textContent = `${msg.sender_name}: ${msg.message}`;
-                        chatMessages.appendChild(messageElement);
+                        const messageContainer = document.createElement('div');
+                        messageContainer.className = 'message-container';
+                        messageContainer.style.clear = 'both';
+
+                        const messageBubble = document.createElement('div');
+                        messageBubble.className = `message ${msg.sender_id == <?php echo $_SESSION['user_id']; ?> ? 'sent' : 'received'}`;
+                        
+                        const formattedTime = new Date(msg.timestamp * 1000).toLocaleString();
+
+                        messageBubble.innerHTML = `
+                            <div class="message-content">
+                                <div class="message-text">${msg.message}</div>
+                                <div class="message-time">${formattedTime}</div>
+                            </div>
+                        `;
+
+                        messageContainer.appendChild(messageBubble);
+                        chatMessages.appendChild(messageContainer);
                     });
 
-                    // Scroll to the bottom of the chat
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    if (wasScrolledToBottom || chatMessages.scrollHeight > previousHeight) {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
                 })
                 .catch(error => console.error('Error fetching messages:', error));
         }

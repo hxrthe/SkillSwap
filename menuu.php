@@ -21,13 +21,270 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="<?php echo isset($_SESSION['theme']) ? $_SESSION['theme'] : 'light'; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKILLSWAP</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+        <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Great+Vibes:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --card-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --primary-color: #4CAF50;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --card-bg: #2d2d2d;
+            --border-color: #444444;
+            --primary-color: #66BB6A;
+        }
+
+        body {
+            font-family: 'Luckiest Guy', cursive, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Navigation Styles */
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: var(--bg-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 0.8rem 1.5rem;
+        }
+
+        .nav-container nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .nav-container .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            font-family: 'Luckiest Guy', cursive, Arial, sans-serif;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-container .logo img {
+            height: 2rem;
+            width: auto;
+        }
+
+        .nav-container .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .nav-container .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+
+        .nav-container .nav-links a:hover {
+            color: var(--primary-color);
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+
+        .nav-container .mobile-menu {
+            display: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1200px) {
+            .nav-container {
+                padding: 0.8rem 1rem;
+            }
+
+            .nav-container .nav-links {
+                gap: 2rem;
+            }
+
+            .nav-container .logo {
+                font-size: 1.6rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .nav-container {
+                padding: 0.7rem 0.8rem;
+            }
+
+            .nav-container .nav-links {
+                gap: 1.5rem;
+            }
+
+            .nav-container .logo {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 0.6rem 0.7rem;
+            }
+
+            .nav-container nav {
+                padding: 0.6rem 0.7rem;
+            }
+
+            .nav-container .nav-links {
+                display: none;
+            }
+
+            .nav-container .mobile-menu {
+                display: block;
+            }
+
+            .nav-container .logo {
+                font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .nav-container {
+                padding: 0.5rem 0.6rem;
+            }
+
+            .nav-container .logo {
+                font-size: 1.3rem;
+            }
+
+            .nav-container .mobile-menu {
+                font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-container {
+                padding: 0.4rem 0.5rem;
+            }
+
+            .nav-container .logo {
+                font-size: 1.2rem;
+            }
+
+            .nav-container .mobile-menu {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Modal Overlay */
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        #overlay.active {
+            display: block;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .menu-container {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .menu-item:hover {
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item i {
+            margin-right: 15px;
+            color: var(--primary-color);
+        }
+
+        .menu-item a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .logout-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 60%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .menu-container {
+                padding: 15px;
+            }
+
+            .menu-item {
+                padding: 12px;
+            }
+        }
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
         body {
@@ -49,6 +306,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         .header .logo {
             font-size: 30px;
             font-weight: bold;
+            font-family: 'Luckiest Guy', cursive, Arial, sans-serif;
         }
         .header nav {
             display: flex;
@@ -239,29 +497,11 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             </li>
             <li>
                 <ion-icon name="settings-outline"></ion-icon>
-                <a href="#settings">Settings</a>
+                <a href="settings.php">Settings</a>
             </li>
         </ul>
         <button class="logout-button" onclick="logout()">Logout</button>
     </div>
-
-    <div class="bg">
-        <img src="ssbg4.png" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
-    </div>
-
-    <!-- Edit Profile Modal
-    <div id="editProfileModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; background-color: yellow; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); z-index: 1001;">
-        <h3>Edit Your Profile</h3>
-        <form id="editProfileForm">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" value="MOCHI" style="width: 80%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" value="mochi@example.com" style="width: 80%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            
-            <button type="button" onclick="showPasswordModal()" style="background-color: black; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Update</button>
-        </form>
-    </div> -->
 
     <!-- Password Verification Modal -->
     <div id="passwordModal" class="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); z-index: 1001;">

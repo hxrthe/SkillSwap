@@ -41,19 +41,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'login') {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
+    // First check if it's an admin
+    $stmt = $conn->prepare("SELECT * FROM admins WHERE Email = :email");
+    $stmt->bindParam(':email', $email);
+    $stmt->execute();
+    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($admin) {
+        if (!$admin['Is_Active']) {
+            $error = 'deactivated_admin';
+            $_SESSION['activeTab'] = 'login';
+        } elseif (password_verify($password, $admin['Password'])) {
+            // Update last login time
+            $updateStmt = $conn->prepare("UPDATE admins SET Last_Login = CURRENT_TIMESTAMP WHERE Admin_ID = :admin_id");
+            $updateStmt->execute([':admin_id' => $admin['Admin_ID']]);
+
+            // Set admin session
+            $_SESSION['admin_id'] = $admin['Admin_ID'];
+            $_SESSION['admin_email'] = $admin['Email'];
+            $_SESSION['admin_role'] = $admin['Role'];
+            $_SESSION['admin_name'] = $admin['First_Name'] . ' ' . $admin['Last_Name'];
+
+            header("Location: admin.php");
+            exit();
+        } else {
+            $error = 'login';
+            $_SESSION['activeTab'] = 'login';
+        }
+    }
+
+    // If not admin, check if it's a regular user
     $stmt = $conn->prepare("SELECT * FROM users WHERE Email = :email");
     $stmt->bindParam(':email', $email);
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
+        // Check if user is banned
+        $banCheck = $conn->prepare("SELECT 1 FROM user_restrictions WHERE User_ID = ? AND Status = 'banned' AND (Restricted_Until IS NULL OR Restricted_Until > NOW())");
+        $banCheck->execute([$user['User_ID']]);
+        if ($banCheck->fetchColumn()) {
+            header("Location: loginpagee.php?banned=1");
+            exit();
+        }
         if ($user['Is_Verified'] == 0) {
             $error = 'not_verified';
             $_SESSION['activeTab'] = 'login';
         } elseif ($password === $user['Password']) {
             $_SESSION['user_id'] = $user['User_ID']; 
             $_SESSION['user_email'] = $user['Email'];
-            header("Location: Interests.php?submit=success");
+            header("Location: home.php?submit=success");
             exit(); 
         } else {
             $error = 'login';
@@ -124,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
         .input-box {
             position: relative;
         }
@@ -264,11 +302,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
         }
         body {
             margin-top: 60px;
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
         }
     </style>
 </head>
 
 <body>
+<?php if (isset($_GET['banned'])): ?>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+Swal.fire({
+    icon: 'error',
+    title: 'You are banned',
+    text: 'Your account has been banned. You cannot log in at this time.',
+    confirmButtonText: 'I understand'
+}).then(() => {
+    window.location.href = 'loginpagee.php';
+});
+</script>
+<?php endif; ?>
     <div class="container">
         <div class="form-box login">
             <form method="POST" action="">
@@ -286,12 +339,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
                     <a href="#" onclick="showForgotPasswordModal()">Forgot password?</a>
                 </div>
                 <button type="submit" class="btn">Sign In</button>
-                <p>or login with social platforms</p>
+                <!-- <p>or login with social platforms</p>
                 <div class="social-icons">
                     <a href="#"><i class='bx bxl-facebook'></i></a>
                     <a href="#"><i class='bx bxl-google'></i></a>
                     <a href="#"><i class='bx bxl-linkedin'></i></a>
-                </div>
+                </div> -->
             </form>
         </div>
         
@@ -321,18 +374,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
                     <i class='bx bxs-lock-alt'></i>
                 </div>
                 <button type="submit" class="btn">Sign Up</button>
-                <p>or register with social platforms</p>
+                <!-- <p>or register with social platforms</p>
                 <div class="social-icons">
                     <a href="#"><i class='bx bxl-facebook'></i></a>
                     <a href="#"><i class='bx bxl-google'></i></a>
                     <a href="#"><i class='bx bxl-linkedin'></i></a>
-                </div>
+                </div> -->
             </form>
         </div>
 
         <div class="toggle-box">
             <div class="toggle-panel toggle-left">
-                <h1>SKILLSWAP</h1>
+                <h1 style="font-family: 'Luckiest Guy', cursive, Arial, sans-serif;">SKILLSWAP</h1>
                 <p>Don't have an account yet?</p>
                 <button class="btn register-btn">Sign Up</button>
             </div>
@@ -664,6 +717,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'register') {
             icon: "error",
             title: "Invalid Verification",
             text: "The verification code is invalid or has expired. Please request a new code."
+        });
+        <?php elseif ($error === 'deactivated_admin'): ?>
+        Swal.fire({
+            icon: "error",
+            title: "Account Deactivated",
+            text: "Your admin account has been deactivated. Please contact the super admin for assistance."
         });
         <?php endif; ?>
 

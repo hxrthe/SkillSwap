@@ -1,0 +1,38 @@
+<?php
+error_log("Incoming Requests: " . print_r($requests, true));
+[10-May-2025 15:30:01 Europe/Berlin] Profile picture upload started
+[10-May-2025 15:30:01 Europe/Berlin] File type detected: image/jpeg
+[10-May-2025 15:30:01 Europe/Berlin] Image data read successfully, size: 32291
+[10-May-2025 15:30:01 Europe/Berlin] Profile picture updated in database successfully
+[10-May-2025 15:30:01 Europe/Berlin] Profile update completed successfully
+[10-May-2025 15:38:11 Europe/Berlin] Profile picture upload started
+[10-May-2025 15:38:11 Europe/Berlin] File type detected: image/jpeg
+[10-May-2025 15:38:11 Europe/Berlin] Image data read successfully, size: 32291
+[10-May-2025 15:38:11 Europe/Berlin] Profile picture updated in database successfully
+[10-May-2025 15:38:11 Europe/Berlin] Profile update completed successfully
+[10-May-2025 15:40:56 Europe/Berlin] Profile update completed successfully
+[10-May-2025 15:43:49 Europe/Berlin] Profile picture upload started
+[10-May-2025 15:43:49 Europe/Berlin] File type detected: image/jpeg
+[10-May-2025 15:43:49 Europe/Berlin] Image data read successfully, size: 157378
+[10-May-2025 15:43:49 Europe/Berlin] Profile picture updated in database successfully
+[10-May-2025 15:43:49 Europe/Berlin] Profile update completed successfully
+[10-May-2025 16:06:56 Europe/Berlin] Profile picture upload started
+[10-May-2025 16:06:56 Europe/Berlin] File type detected: image/jpeg
+[10-May-2025 16:06:56 Europe/Berlin] Image data read successfully, size: 53718
+[10-May-2025 16:06:56 Europe/Berlin] Profile picture updated in database successfully
+[10-May-2025 16:06:56 Europe/Berlin] Profile update completed successfully
+[10-May-2025 17:06:36 Europe/Berlin] Profile picture upload started
+[10-May-2025 17:06:36 Europe/Berlin] File type detected: image/jpeg
+[10-May-2025 17:06:36 Europe/Berlin] Image data read successfully, size: 6300
+[10-May-2025 17:06:36 Europe/Berlin] Profile picture updated in database successfully
+[10-May-2025 17:06:36 Europe/Berlin] Profile update completed successfully
+[10-May-2025 17:13:34 Europe/Berlin] Profile picture upload started
+[10-May-2025 17:13:34 Europe/Berlin] File type detected: image/png
+[10-May-2025 17:13:34 Europe/Berlin] Image data read successfully, size: 5513
+[10-May-2025 17:13:34 Europe/Berlin] Profile picture updated in database successfully
+[10-May-2025 17:13:34 Europe/Berlin] Profile update completed successfully
+[10-May-2025 17:21:39 Europe/Berlin] Profile picture upload started
+[10-May-2025 17:21:39 Europe/Berlin] File type detected: image/jpeg
+[10-May-2025 17:21:39 Europe/Berlin] Image data read successfully, size: 91384
+[10-May-2025 17:21:39 Europe/Berlin] Profile picture updated in database successfully
+[10-May-2025 17:21:39 Europe/Berlin] Profile update completed successfully

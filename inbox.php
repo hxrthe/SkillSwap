@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once 'SkillSwapDatabase.php';
+require_once 'SP.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -12,26 +13,93 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Get current user's ID
+$currentUserId = $_SESSION['user_id'];
+
 $db = new Database();
 $conn = $db->getConnection();
 
+$crud = new Crud();
+
+$userPicData = $crud->getUserProfilePicture($_SESSION['user_id']);
+$userProfilePic = !empty($userPicData) ? 'data:image/jpeg;base64,' . base64_encode($userPicData) : 'default-profile.png';
+
+// For original poster (OP) profile picture
+$opPic = 'default-profile.png';
+if (!empty($post['User_ID'])) {
+    $opPicData = $crud->getUserProfilePicture($post['User_ID']);
+    if (!empty($opPicData)) {
+        $opPic = 'data:image/jpeg;base64,' . base64_encode($opPicData);
+    }
+}
+
+// Fetch logged-in user's profile picture
+try {
+    $query = "SELECT profile_picture FROM users WHERE user_id = :user_id";
+    $stmt = $conn->prepare($query);
+    $stmt->execute([':user_id' => $_SESSION['user_id']]);
+    $userPicData = $stmt->fetchColumn();
+    
+    $userProfilePic = !empty($userPicData) 
+        ? 'data:image/jpeg;base64,' . base64_encode($userPicData)
+        : 'default-profile.png';
+} catch (PDOException $e) {
+    $userProfilePic = 'default-profile.png';
+}
+
+
 // Fetch requests where the logged-in user is the receiver
-$stmt = $conn->prepare("SELECT r.*, u.First_Name AS sender_name FROM requests r JOIN users u ON r.sender_id = u.User_ID WHERE r.receiver_id = :receiver_id ORDER BY r.created_at DESC");
+$stmt = $conn->prepare("
+    SELECT r.id, r.message, r.status, r.created_at, u.User_ID AS sender_id, u.First_Name AS sender_name, u.Last_Name AS sender_last_name, u.Profile_Picture
+    FROM requests r
+    JOIN users u ON u.User_ID = r.sender_id
+    WHERE r.receiver_id = :receiver_id
+    AND r.status = 'pending'
+    ORDER BY r.created_at DESC
+");
 $stmt->execute([':receiver_id' => $_SESSION['user_id']]);
 $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+error_log("Incoming Requests: " . print_r($requests, true)); // Debugging
+
 // Fetch sent requests
-$stmt = $conn->prepare("SELECT r.*, u.First_Name AS receiver_name FROM requests r JOIN users u ON r.receiver_id = u.User_ID WHERE r.sender_id = :sender_id ORDER BY r.created_at DESC");
-$stmt->execute([':sender_id' => $_SESSION['user_id']]);
+$stmt = $conn->prepare("
+    SELECT mr.receiver_id, u.First_Name, u.Last_Name, u.Profile_Picture, mr.created_at
+    FROM match_requests mr
+    JOIN users u ON u.User_ID = mr.receiver_id
+    WHERE mr.sender_id = :current_user_id
+    AND mr.status = 'pending'
+    ORDER BY mr.created_at DESC
+");
+$stmt->execute([':current_user_id' => $_SESSION['user_id']]);
 $sentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+error_log("Sent Requests: " . print_r($sentRequests, true));
+
 // Fetch ongoing requests
-$stmt = $conn->prepare("SELECT r.*, u.First_Name AS receiver_name FROM requests r JOIN users u ON r.receiver_id = u.User_ID WHERE (r.sender_id = :user_id OR r.receiver_id = :user_id) AND r.status = 'accepted' ORDER BY r.created_at DESC");
+$stmt = $conn->prepare("
+    SELECT r.*, 
+        us.First_Name AS sender_name, us.Last_Name AS sender_last_name, 
+        ur.First_Name AS receiver_name, ur.Last_Name AS receiver_last_name
+    FROM requests r
+    JOIN users us ON us.User_ID = r.sender_id
+    JOIN users ur ON ur.User_ID = r.receiver_id
+    WHERE (r.sender_id = :user_id OR r.receiver_id = :user_id)
+    AND r.status = 'accepted'
+    ORDER BY r.created_at DESC
+");
 $stmt->execute([':user_id' => $_SESSION['user_id']]);
 $ongoingRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch completed requests
-$stmt = $conn->prepare("SELECT r.*, u.First_Name AS receiver_name FROM requests r JOIN users u ON r.receiver_id = u.User_ID WHERE r.sender_id = :sender_id AND r.status = 'completed' ORDER BY r.created_at DESC");
+$stmt = $conn->prepare("
+    SELECT r.*, u.First_Name AS receiver_name 
+    FROM requests r 
+    JOIN users u ON r.receiver_id = u.User_ID 
+    WHERE r.sender_id = :sender_id 
+    AND r.status = 'completed' 
+    ORDER BY r.created_at DESC
+");
 $stmt->execute([':sender_id' => $_SESSION['user_id']]);
 $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -46,17 +114,20 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            background: linear-gradient(to right, #fdfd96, #fff);
-            padding: 20px;
+            background: url('./assets/images/finalbg2.jpg') no-repeat center center fixed;
+            background-size: cover;
+            padding: 0;
         }
 
         .tabs {
             margin-top: 20px;
+            margin-left: 20px;
+            margin-right: 20px;
             display: flex;
             justify-content: space-around; /* Space tabs evenly */
-            margin-bottom: 20px;
+            /* margin-bottom: 20px; */
             background-color: #fdfd96; /* Light yellow background */
-            border-radius: 5px;
+            border-radius: 5px 5px 0 0;
             padding: 10px 0;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for the tab container */
         }
@@ -94,6 +165,9 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .tab-content {
+            margin-left: 20px;
+            margin-right: 20px;
+            margin-bottom: 20px;
             display: none;
             border: 1px solid #ddd;
             border-radius: 0 5px 5px 5px;
@@ -111,6 +185,13 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 15px;
             margin-bottom: 10px;
             background-color: #f9f9f9;
+        }
+
+        .request img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
         }
 
         .request h3 {
@@ -188,16 +269,17 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .modal {
+            display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5);
             justify-content: center;
             align-items: center;
             z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
         }
 
         .modal-content {
@@ -236,6 +318,35 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .chat-button:hover {
             background-color: #45a049;
         }
+
+        .accept-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .accept-button:hover {
+            background-color: #45a049;
+        }
+
+        .decline-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .decline-button:hover {
+            background-color: #d32f2f;
+        }
     </style>
 </head>
 <body>
@@ -250,30 +361,100 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Tab Content -->
     <div id="requests" class="tab-content">
-        <div id="requests-container">
-            <!-- Requests will be dynamically loaded here -->
-        </div>
-    </div>
-
-    <div id="sent" class="tab-content">
-        <?php if (count($sentRequests) > 0): ?>
-            <?php foreach ($sentRequests as $request): ?>
+        <h2>Incoming Requests</h2>
+        <?php if (!empty($requests)): ?>
+            <?php foreach ($requests as $request): ?>
                 <div class="request">
-                    <h3>Request to <?php echo htmlspecialchars($request['receiver_name']); ?></h3>
-                    <p><?php echo htmlspecialchars($request['message']); ?></p>
+                    <div class="profile-image">
+                        <img src="<?php echo !empty($request['Profile_Picture']) 
+                            ? ('data:image/jpeg;base64,' . base64_encode($request['Profile_Picture'])) 
+                            : 'default-profile.png'; ?>" alt="Profile Picture">
+                    </div>
+                    <h3>Request from <?php echo htmlspecialchars($request['sender_name'] . ' ' . $request['sender_last_name']); ?></h3>
+                    <p><?php echo htmlspecialchars($request['message'] ?? 'No message provided'); ?></p>
                     <p><strong>Status:</strong> <?php echo htmlspecialchars($request['status']); ?></p>
+                    <div class="request-actions">
+                        <button class="accept-button" onclick="acceptRequest(<?php echo $request['id']; ?>)">Accept</button>
+                        <button class="decline-button" onclick="declineRequest(<?php echo $request['id']; ?>)">Decline</button>
+                    </div>
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <p>No sent requests found.</p>
+            <p>No incoming requests found.</p>
         <?php endif; ?>
+    </div>
+
+    <div id="sent" class="tab-content">
+        <script>
+            function fetchSentRequests() {
+                fetch('fetch_sent_requests.php')
+                    .then(response => response.json())
+                    .then(sentRequests => {
+                        console.log('Sent Requests:', sentRequests); // Debugging: Log the response
+
+                        const sentTab = document.getElementById('sent');
+                        sentTab.innerHTML = ''; // Clear existing content
+
+                        if (sentRequests.error) {
+                            sentTab.innerHTML = `<p>${sentRequests.error}</p>`;
+                            return;
+                        }
+
+                        if (sentRequests.length === 0) {
+                            sentTab.innerHTML = '<p>No sent requests found.</p>';
+                            return;
+                        }
+
+                        sentRequests.forEach(request => {
+                            const requestElement = document.createElement('div');
+                            requestElement.className = 'request';
+                            requestElement.innerHTML = `
+                                <h3>Request to ${request.receiver_name}</h3>
+                                <p>Request sent on: ${request.created_at}</p>
+                            `;
+                            sentTab.appendChild(requestElement);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching sent requests:', error));
+            }
+
+            document.addEventListener('DOMContentLoaded', fetchSentRequests);
+        </script>
+        <div class="sent-requests">
+            <h2>Sent Requests</h2>
+            <?php if (!empty($sentRequests)): ?>
+                <?php foreach ($sentRequests as $request): ?>
+                    <div class="request-item">
+                        <div class="profile-image">
+                            <img src="serve_profile_picture.php?user_id=<?php echo htmlspecialchars($request['receiver_id']); ?>" alt="Profile Picture">
+                        </div>
+                        <div class="info">
+                            <h3><?php echo htmlspecialchars($request['First_Name'] . ' ' . $request['Last_Name']); ?></h3>
+                            <p>Request sent on: <?php echo htmlspecialchars($request['created_at']); ?></p>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>No sent requests.</p>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div id="ongoing" class="tab-content">
         <?php if (count($ongoingRequests) > 0): ?>
             <?php foreach ($ongoingRequests as $request): ?>
                 <div class="request">
-                    <h3>Ongoing with <?php echo htmlspecialchars($request['receiver_name']); ?></h3>
+                    <h3>
+                        Ongoing with 
+                        <?php
+                        // Show the other user's name
+                        if ($currentUserId == $request['sender_id']) {
+                            echo htmlspecialchars($request['receiver_name'] . ' ' . $request['receiver_last_name']);
+                        } else {
+                            echo htmlspecialchars($request['sender_name'] . ' ' . $request['sender_last_name']);
+                        }
+                        ?>
+                    </h3>
                     <p><?php echo htmlspecialchars($request['message']); ?></p>
 
                     <?php if (!$request['schedule_confirmed']): ?>
@@ -324,9 +505,9 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <!-- Modal -->
-    <div id="saveModal" class="modal" style="display: none;">
+    <div id="saveModal" class="modal">
         <div class="modal-content">
-            <p>Schedule saved successfully!</p>
+            <p id="saveModalMessage"></p>
             <button onclick="closeModal()">OK</button>
         </div>
     </div>
@@ -360,31 +541,54 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `request_id=${requestId}&schedule=${encodeURIComponent(schedule)}`
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Show the modal
-                        document.getElementById('saveModal').style.display = 'flex';
+            .then(response => response.json())
+            .then(data => {
+                // Get the modal and message element
+                const modal = document.getElementById('saveModal');
+                const message = document.getElementById('saveModalMessage');
 
-                        // Update the other user's availability dynamically
-                        const otherAvailability = document.getElementById(`other-availability-${requestId}`);
-                        otherAvailability.innerHTML = `<p>${schedule}</p>`;
-
-                        // Check if both schedules are saved and redirect to chat
-                        if (data.schedule_confirmed) {
-                            setTimeout(() => {
-                                window.location.href = `chat_view.php?request_id=${requestId}`;
-                            }, 2000); // Redirect after 2 seconds
+                if (data.success) {
+                    // Determine the other user's name
+                    let otherUserName = '';
+                    <?php
+                    // Prepare a JS object mapping requestId to other user's name
+                    $ongoingUserMap = [];
+                    foreach ($ongoingRequests as $req) {
+                        if ($currentUserId == $req['sender_id']) {
+                            $otherName = htmlspecialchars($req['receiver_name'] . ' ' . $req['receiver_last_name']);
+                        } else {
+                            $otherName = htmlspecialchars($req['sender_name'] . ' ' . $req['sender_last_name']);
                         }
-                    } else {
-                        alert('Error: ' + data.error);
+                        $ongoingUserMap[$req['id']] = $otherName;
                     }
-                })
-                .catch(error => console.error('Error:', error));
+                    ?>
+                    const userMap = <?php echo json_encode($ongoingUserMap); ?>;
+                    otherUserName = userMap[requestId];
+
+                    // Show appropriate message
+                    if (data.schedule_confirmed) {
+                        message.textContent = "Both of you have added your schedule. You can now chat!";
+                    } else {
+                        message.textContent = `Let's wait for ${otherUserName} to add their schedule.`;
+                    }
+                    modal.classList.add('active'); // To show
+                    modal.classList.remove('active'); // To hide
+
+                    // If both have added, optionally redirect to chat after a short delay
+                    if (data.schedule_confirmed) {
+                        setTimeout(() => {
+                            window.location.href = `chat_view.php?request_id=${requestId}`;
+                        }, 2000);
+                    }
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
         }
 
         function closeModal() {
-            document.getElementById('saveModal').style.display = 'none';
+            document.getElementById('saveModal').classList.remove('active');
         }
 
         function acceptRequest(requestId) {
@@ -394,16 +598,16 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: `request_id=${requestId}`
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Request accepted successfully!');
-                            location.reload(); // Reload the page to update the tabs
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
+                .then(response => response.json())
+                .then (data => {
+                    if (data.success) {
+                        alert('Request accepted successfully!');
+                        location.reload(); // Reload the page to update the Requests tab
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
             }
         }
 
@@ -443,15 +647,74 @@ $completedRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 .catch(error => console.error('Error fetching requests:', error));
         }
 
-        function showModal() {
-            document.getElementById('saveModal').style.display = 'flex';
-        }
+        // function showModal() {
+        //     document.getElementById('saveModal').style.display = 'flex';
+        // }
 
         function proceedToChat(requestId) {
             window.location.href = `chat_view.php?request_id=${requestId}`;
         }
 
-        document.querySelector('.tab[onclick="showTab(\'requests\')"]').addEventListener('click', loadRequests);
+        // document.querySelector('.tab[onclick="showTab(\'requests\')"]').addEventListener('click', loadRequests);
+
+        function fetchIncomingRequests() {
+            fetch(`fetch_incoming_requests.php?timestamp=${new Date().getTime()}`)
+                .then(response => response.json())
+                .then(incomingRequests => {
+                    console.log('Incoming Requests:', incomingRequests); // Debugging: Log the response
+
+                    const requestsTab = document.getElementById('requests');
+                    requestsTab.innerHTML = ''; // Clear existing content
+
+                    if (incomingRequests.error) {
+                        requestsTab.innerHTML = `<p>${incomingRequests.error}</p>`;
+                        return;
+                    }
+
+                    if (incomingRequests.length === 0) {
+                        requestsTab.innerHTML = '<p>No incoming requests found.</p>';
+                        return;
+                    }
+
+                    incomingRequests.forEach(request => {
+                        const requestElement = document.createElement('div');
+                        requestElement.className = 'request';
+                        requestElement.innerHTML = `
+                            <div class="profile-image">
+                                <img src="serve_profile_picture.php?user_id=${request.sender_id}" alt="Profile Picture">
+                            </div>
+                            <h3>Request from ${request.sender_name} ${request.sender_last_name}</h3>
+                            <p>${request.message || 'No message provided'}</p>
+                            <p><strong>Status:</strong> ${request.status}</p>
+                            <div class="request-actions">
+                                <button class="accept-button" onclick="acceptRequest(${request.id})">Accept</button>
+                                <button class="decline-button" onclick="declineRequest(${request.id})">Decline</button>
+                            </div>`;
+                        requestsTab.appendChild(requestElement);
+                    });
+                })
+                .catch(error => console.error('Error fetching incoming requests:', error));
+        }
+
+        function declineRequest(requestId) {
+            if (confirm('Are you sure you want to decline this request?')) {
+                fetch('decline_request.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `request_id=${requestId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Request declined successfully!');
+                        location.reload(); // Reload the page to update the Requests tab
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
     </script>
 </body>
 </html>
