@@ -1,3 +1,5 @@
+<?php include 'menu.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,7 +11,7 @@
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #1c1c1c;
+      background: linear-gradient(to right, #fdfd96, #fff);
       color: #fff;
     }
 
@@ -19,7 +21,7 @@
     }
 
     .contact-info {
-      background: linear-gradient(135deg, #000000, #2d2d2d);
+     background: linear-gradient(to right, #fdfd96, #fff);
       color: #ffcc00;
       padding: 40px 30px;
       width: 40%;
@@ -41,7 +43,7 @@
       margin-bottom: 40px;
       line-height: 1.5;
       margin-left: 10px;
-      color: #f5f5f5;
+      color:rgb(6, 3, 3);
     }
 
     .contact-info .info-item {
@@ -79,7 +81,7 @@
     }
 
     .contact-form {
-      background: #2b2b2b;
+      background: linear-gradient(to left, #fdfd96, #fff);
       width: 60%;
       padding: 60px 40px;
       color: #fff;
