@@ -1,15 +1,18 @@
 <?php
+// mark_solved.php
 require_once 'SkillSwapDatabase.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    if (!isset($_POST['id']) || empty($_POST['id'])) {
+        echo json_encode(['success' => false, 'message' => 'Invalid ID']);
+        exit;
+    }
+
     $id = intval($_POST['id']);
 
     try {
-        $pdo = new PDO("mysql:host=localhost;dbname=skillswap;charset=utf8mb4", "root", "");
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $stmt = $pdo->prepare("UPDATE complaints SET status = 'Resolved' WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare("UPDATE complaints SET status = 'Resolved' WHERE id = :id");
+        $stmt->execute(['id' => $id]);
 
         if ($stmt->rowCount() > 0) {
             echo json_encode(['success' => true]);
@@ -20,5 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
 } else {
-    echo json_encode(['success' => false, 'message' => 'Invalid request']);
+    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
 }
+?>
