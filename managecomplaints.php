@@ -343,10 +343,10 @@ try {
               echo "<td class='py-3 px-6'>" . htmlspecialchars($row["email"]) . "</td>";
               echo "<td class='py-3 px-6'>" . htmlspecialchars($row["contact_no"]) . "</td>";
               echo "<td class='py-3 px-6'>
-                      <button onclick=\"showMessage('" . htmlspecialchars(addslashes($row["message"])) . "', " . $row["id"] . ", this)\" class='bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded'>
-                        View Message
-                      </button>
-                    </td>";
+        <button onclick='showMessage(" . json_encode($row["message"]) . ", " . $row["id"] . ", this)' class='bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded'>
+          View Message
+        </button>
+      </td>";
               echo "<td class='py-3 px-6'>" . $row["created_at"] . "</td>";
               $statusClass = $row["status"] == 'Resolved' ? 'text-green-600' : 'text-yellow-600';
               echo "<td class='py-3 px-6 status-cell $statusClass font-semibold'>" . $row["status"] . "</td>";
